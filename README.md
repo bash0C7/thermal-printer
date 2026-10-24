@@ -20,7 +20,7 @@ mise exec ruby@4.0.5 -- rake vendor:setup
 mise exec ruby@4.0.5 -- rake vm:build
 ```
 
-`vendor:setup` が R2P2-darwin、picoruby、gem を取得し、使った port-darwin と gem の commit を `build/port-darwin.commit` と `build/phomemo-gem.commit` に記録します。`vm:build` が製品の picoruby VM を `vendor/R2P2-darwin/build/host/bin/picoruby` に作ります。
+`vendor:setup` が [R2P2-darwin](https://github.com/bash0C7/R2P2-darwin)、[port-darwin](https://github.com/bash0C7/picoruby/tree/port-darwin) ブランチの picoruby、gem を取得し、使った port-darwin と gem の commit を `build/port-darwin.commit` と `build/phomemo-gem.commit` に記録します。`vm:build` が製品の picoruby VM を `vendor/R2P2-darwin/build/host/bin/picoruby` に作ります。
 
 初めて印字するときは、macOS の Bluetooth 許可と、T02 とのペアリング確認が出ます。どちらも許可します。
 
