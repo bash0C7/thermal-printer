@@ -36,6 +36,10 @@ extension XCUIApplication {
 }
 
 extension XCUIElement {
+    var containedText: String {
+        descendants(matching: .staticText).allElementsBoundByIndex.map(\.text).joined(separator: " ")
+    }
+
     var text: String {
         if !label.isEmpty { return label }
         return (value as? String) ?? ""
@@ -61,16 +65,18 @@ struct FakeSession {
     }
 
     @MainActor
-    static func launch(_ scenario: FakeScenario = .ok) throws -> FakeSession {
+    static func launch(_ scenario: FakeScenario = .ok, isolatedHome: Bool = true) throws -> FakeSession {
         let scratch = try makeScratchDirectory("fake")
         let log = scratch.appending(path: "cli.log")
-        let home = scratch.appending(path: "home")
-        try FileManager.default.createDirectory(at: home, withIntermediateDirectories: true)
         let app = XCUIApplication()
         app.launchEnvironment["THERMALPRINTER_CLI"] = fakeCLIURL.path
         app.launchEnvironment["FAKE_CLI_SCENARIO"] = scenario.rawValue
         app.launchEnvironment["FAKE_CLI_LOG"] = log.path
-        app.launchEnvironment["HOME"] = home.path
+        if isolatedHome {
+            let home = scratch.appending(path: "home")
+            try FileManager.default.createDirectory(at: home, withIntermediateDirectories: true)
+            app.launchEnvironment["HOME"] = home.path
+        }
         app.launch()
         return FakeSession(app: app, log: log)
     }

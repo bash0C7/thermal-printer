@@ -63,6 +63,20 @@ namespace :app do
   end
 
   namespace :uitest do
+    desc "Fetch the card of GITHUB_URL through the real gh, preview it with the real CLI dry-run and send one job to a fake CLI (GITHUB_URL=url GITHUB_EXPECT_ROW=text; never touches the printer)"
+    task :github => :gen do
+      url = ENV["GITHUB_URL"].to_s
+      expect = ENV["GITHUB_EXPECT_ROW"].to_s
+      abort "set GITHUB_URL to the issue or pull request URL" if url.empty?
+      abort "set GITHUB_EXPECT_ROW to text the fetched card's part row must contain" if expect.empty?
+      xcodebuild_test(
+        "-only-testing:ThermalPrinterUITests/GitHubCardTests",
+        "TEST_RUNNER_RUN_GITHUB" => "1",
+        "TEST_RUNNER_GITHUB_URL" => url,
+        "TEST_RUNNER_GITHUB_EXPECT_ROW" => expect
+      )
+    end
+
     desc "Print DEVICE_IMAGE on the real printer through the staged app (DEVICE_OK=1 DEVICE_IMAGE=path)"
     task :device => :gen do
       abort "refusing to print: set DEVICE_OK=1 to confirm the printer is ready" unless ENV["DEVICE_OK"] == "1"

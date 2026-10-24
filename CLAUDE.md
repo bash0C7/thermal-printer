@@ -45,6 +45,8 @@ mise exec ruby@4.0.5 -- rake test:integration  # test/integrationのCRubyテス�
 FILTER=options mise exec ruby@4.0.5 -- rake test:ruby
 mise exec ruby@4.0.5 -- rake vm:build          # 製品 VM (build_config/darwin-thermal-printer.rb)
 mise exec ruby@4.0.5 -- rake test:e2e          # カードのプレビュー PNG を claude -p が判定する。トークンを使う
+mise exec ruby@4.0.5 -- rake app:uitest        # 偽の CLI でアプリを操作する UI テスト。画面とクリップボードを使う
+GITHUB_URL=<issue の URL> GITHUB_EXPECT_ROW=<カード行の文字> mise exec ruby@4.0.5 -- rake app:uitest:github   # 実際の gh で取得したカードを、実 CLI の --dry-run でプレビューする。印字しない
 ```
 
 - `test:integration`は製品VMを要する。VMがなければ中断して`rake vm:build`を促す。

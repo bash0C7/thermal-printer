@@ -52,7 +52,7 @@ final class DeviceScenarioTests: XCTestCase {
 
         pasteAndPreview(app, previewTimeout: 180)
 
-        let row = app.item("partRow-0").text
+        let row = app.item("partRow-0").containedText
         report.append("part row: \(row)")
         XCTAssertTrue(row.contains(expectedRow), "the card was not fetched from GitHub; part row: \(row)")
 
