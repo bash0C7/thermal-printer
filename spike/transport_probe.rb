@@ -13,7 +13,7 @@ def hex(value)
 end
 
 t0 = Machine.board_millis
-transport = PhomemoThermalPrinter::Darwin::Transport.new
+transport = PhomemoThermalPrinter::Transport.new
 connected = transport.connect("T02", 20000)
 puts "[+#{Machine.board_millis - t0}ms] connect=#{connected.inspect}"
 exit 3 unless connected

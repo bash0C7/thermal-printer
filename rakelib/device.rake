@@ -11,7 +11,7 @@ module DeviceGate
   CORE_PACKAGE = File.join(REPO, "app", "Core")
   CLI = File.join(REPO, "bin", "phomemo-print")
   VM = File.join(REPO, "vendor", "R2P2-darwin", "build", "host", "bin", "picoruby")
-  VM_SOURCE_GLOBS = %w[mrbgems/picoruby-phomemo-thermal-printer/**/* cli/**/*].freeze
+  VM_SOURCE_GLOBS = %w[vendor/picoruby-phomemo-thermal-printer/**/* cli/**/*].freeze
 
   PBM_WIDTH = 384
   ROW_BYTES = 48

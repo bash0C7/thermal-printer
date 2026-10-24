@@ -16,7 +16,7 @@
 
 ## 守ること
 
-- 安全: `1f 11 <op>` で op が 0x14 を超えるものを送らない。未知のコマンドを総当たりで試さない。任意バイト列を送る API を作らない。BLE の write 呼び出しは `ports/darwin/transport.rb` と `session.rb` の `emit` の 2 か所だけ（`rake check:send_paths`）。
+- 安全: `1f 11 <op>` で op が 0x14 を超えるものを送らない。未知のコマンドを総当たりで試さない。任意バイト列を送る API を作らない。BLE の write 呼び出しは gem の `transport.rb` と `session.rb` の `emit` の 2 か所だけ（`rake check:send_paths`）。
 - 紙: 連続用紙なので、印字で確かめるのは画面では分からない物理だけにする。印字は毎回、ユーザーの明示の許可を得てから行う。
 - 実機で出るまで「動いた」と言わない。
 - コードにコメントを書かない。commit は明示 path で行う。

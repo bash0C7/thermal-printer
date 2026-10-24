@@ -21,5 +21,5 @@ MRuby::Build.new do |conf|
   conf.gem core: "picoruby-ble"
   conf.gem core: "picoruby-picotest"
   conf.gem core: "hal-task-darwin"
-  conf.gem gemdir: File.expand_path("../mrbgems/picoruby-phomemo-thermal-printer", __dir__)
+  conf.gem gemdir: File.expand_path("../vendor/picoruby-phomemo-thermal-printer", __dir__)
 end

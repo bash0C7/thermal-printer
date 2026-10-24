@@ -13,7 +13,7 @@ private let repoRoot = URL(fileURLWithPath: #filePath)
 @Test func pbmOfStripesMatchesTheRubyFixtureByteForByte() throws {
     var bmp = Bitmap1(height: 600)
     for y in 0..<600 where y % 2 == 0 { bmp.fillRow(y) }
-    let fixture = try Data(contentsOf: repoRoot.appending(path: "mrbgems/picoruby-phomemo-thermal-printer/test/fixtures/stripes-600.pbm"))
+    let fixture = try Data(contentsOf: repoRoot.appending(path: "test/fixtures/stripes-600.pbm"))
     #expect(PBMWriter.data(bmp) == fixture)
 }
 

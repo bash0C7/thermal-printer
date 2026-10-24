@@ -2,7 +2,7 @@ desc "Run the unit and integration layers"
 task test: ["test:unit", "test:integration"]
 
 namespace :test do
-  desc "Run the unit layer (picotest suites, CRuby tool tests, check:send_paths, Swift unit tests)"
+  desc "Run the unit layer (CLI picotest suite, CRuby tool tests, check:send_paths, Swift unit tests)"
   task unit: ["test:ruby", "test:tools", "check:send_paths"] do
     sh SWIFT, "test", "--package-path", CORE_DIR, "--skip", "ThermalPrinterIntegrationTests"
   end
@@ -16,7 +16,7 @@ namespace :test do
     sh SWIFT, "test", "--package-path", CORE_DIR, "--filter", "ThermalPrinterIntegrationTests"
   end
 
-  desc "Run the picotest suites on the test VM. SUITE=<gem|cli>, FILTER=<file substring>"
+  desc "Run the CLI picotest suite on the test VM. FILTER=<file substring>"
   task ruby: "picotest:ensure_vm" do
     $LOAD_PATH.unshift File.join(ROOT, "test")
     require "picotest/harness"

@@ -8,7 +8,7 @@ class DryRunPngTest < Minitest::Test
   ROOT = File.expand_path("../..", __dir__)
   BIN = File.join(ROOT, "bin", "phomemo-print")
   VM = ENV["PHOMEMO_PICORUBY"] || File.join(ROOT, "vendor", "R2P2-darwin", "build", "host", "bin", "picoruby")
-  STRIPES = File.join(ROOT, "mrbgems", "picoruby-phomemo-thermal-printer", "test", "fixtures", "stripes-600.pbm")
+  STRIPES = File.join(ROOT, "test", "fixtures", "stripes-600.pbm")
   SIGNATURE = "\x89PNG\r\n\x1a\n".b
 
   def setup

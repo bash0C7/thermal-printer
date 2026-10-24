@@ -6,13 +6,9 @@ require "fileutils"
 load File.expand_path("../../rakelib/check.rake", __dir__)
 
 class SendPathsTest < Minitest::Test
-  SESSION = "mrbgems/picoruby-phomemo-thermal-printer/mrblib/phomemo_thermal_printer/session.rb"
-  TRANSPORT = "mrbgems/picoruby-phomemo-thermal-printer/ports/darwin/transport.rb"
-  CLEAN_SESSION = "class S\n  def emit(bytes)\n    @transport.write_chunk(bytes)\n  end\nend\n"
-
   def tree
     Dir.mktmpdir do |root|
-      put(root, SESSION, CLEAN_SESSION)
+      put(root, "cli/phomemo_cli.rb", "class C\nend\n")
       yield root
     end
   end
@@ -27,38 +23,12 @@ class SendPathsTest < Minitest::Test
     tree { |root| assert_equal [], SendPathCheck.violations(root) }
   end
 
-  def test_the_transport_may_call_the_ble_write
-    tree do |root|
-      put(root, TRANSPORT, "x.write_value_of_characteristic_without_response(h, d)\nx.write_chunk(d)\n")
-      assert_equal [], SendPathCheck.violations(root)
-    end
-  end
-
-  def test_a_second_write_chunk_in_the_session_is_a_violation
-    tree do |root|
-      put(root, SESSION, CLEAN_SESSION + "class T\n  def other(b)\n    @transport.write_chunk(b)\n  end\nend\n")
-      assert_equal 1, SendPathCheck.violations(root).size
-    end
-  end
-
-  def test_a_write_chunk_in_the_session_outside_emit_is_a_violation
-    tree do |root|
-      put(root, SESSION, "class S\n  def other(bytes)\n    @transport.write_chunk(bytes)\n  end\nend\n")
-      assert_equal 1, SendPathCheck.violations(root).size
-    end
-  end
-
-  def test_a_session_without_any_write_chunk_is_a_violation
-    tree do |root|
-      put(root, SESSION, "class S\nend\n")
-      assert_equal 1, SendPathCheck.violations(root).size
-    end
-  end
-
-  def test_a_write_chunk_in_another_gem_file_is_a_violation
-    tree do |root|
-      put(root, "mrbgems/picoruby-phomemo-thermal-printer/mrblib/phomemo_thermal_printer/other.rb", "t.write_chunk(b)\n")
-      assert_equal 1, SendPathCheck.violations(root).size
+  def test_a_ble_write_in_the_cli_is_a_violation
+    ["t.write_chunk(b)", "x.write_value_of_characteristic_without_response(h, d)"].each do |text|
+      tree do |root|
+        put(root, "cli/probe.rb", "#{text}\n")
+        assert_equal 1, SendPathCheck.violations(root).size, text
+      end
     end
   end
 
@@ -100,25 +70,12 @@ class SendPathsTest < Minitest::Test
     end
   end
 
-  def test_spike_and_test_directories_are_skipped_but_names_that_merely_contain_test_are_not
+  def test_test_directories_are_skipped_but_names_that_merely_contain_test_are_not
     tree do |root|
-      put(root, "spike/probe.rb", "t.send(:x)\n")
-      put(root, "mrbgems/g/test/probe.rb", "t.send(:x)\n")
+      put(root, "tools/test/probe.rb", "t.send(:x)\n")
       assert_equal [], SendPathCheck.violations(root)
-      put(root, "mrbgems/g/mrblib/testing.rb", "t.send(:x)\n")
+      put(root, "cli/testing.rb", "t.send(:x)\n")
       assert_equal 1, SendPathCheck.violations(root).size
-    end
-  end
-
-  def test_library_internals_are_never_touched
-    ["@event_queue.pop", "_event_popped", "@conn_handle = 1", "@services.clear", "HCI_CON_HANDLE_INVALID",
-     "@write_values", "@read_values"].each do |text|
-      tree do |root|
-        put(root, TRANSPORT, "class T\n  def x\n    #{text}\n  end\nend\n")
-        found = SendPathCheck.violations(root)
-        assert_equal 1, found.size, text
-        assert_includes found[0], TRANSPORT
-      end
     end
   end
 

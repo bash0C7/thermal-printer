@@ -4,7 +4,7 @@ Phomemo T02 感熱プリンターに、Mac から BLE で印字する道具で�
 
 - Mac アプリ（SwiftUI）が、カード、Markdown、写真、QR コードなどを幅 384 dot の白黒ビットマップに組み、紙の実寸でプレビューします。
 - 印字は、アプリが同梱の PicoRuby CLI `phomemo-print` を子プロセスで起動して行います。CLI は単独でも使えます。
-- プリンターの制御は mrbgem `picoruby-phomemo-thermal-printer` にあります。
+- プリンターの制御は mrbgem [picoruby-phomemo-thermal-printer](https://github.com/bash0C7/picoruby-phomemo-thermal-printer) にあります。`vendor:setup` が `vendor/` に取得します。
 
 設計は `docs/superpowers/specs/`、実装計画は `docs/superpowers/plans/`、調査は `docs/research/` にあります。
 
@@ -20,7 +20,7 @@ mise exec ruby@4.0.5 -- rake vendor:setup
 mise exec ruby@4.0.5 -- rake vm:build
 ```
 
-`vendor:setup` が R2P2-darwin と picoruby を取得し、使った port-darwin の commit を `build/port-darwin.commit` に記録します。`vm:build` が製品の picoruby VM を `vendor/R2P2-darwin/build/host/bin/picoruby` に作ります。
+`vendor:setup` が R2P2-darwin、picoruby、gem を取得し、使った port-darwin と gem の commit を `build/port-darwin.commit` と `build/phomemo-gem.commit` に記録します。`vm:build` が製品の picoruby VM を `vendor/R2P2-darwin/build/host/bin/picoruby` に作ります。
 
 初めて印字するときは、macOS の Bluetooth 許可と、T02 とのペアリング確認が出ます。どちらも許可します。
 
@@ -84,14 +84,13 @@ mise exec ruby@4.0.5 -- rake app:install
 mise exec ruby@4.0.5 -- rake test
 mise exec ruby@4.0.5 -- rake test:unit
 mise exec ruby@4.0.5 -- rake test:integration
-SUITE=gem FILTER=command mise exec ruby@4.0.5 -- rake test:ruby
+FILTER=options mise exec ruby@4.0.5 -- rake test:ruby
 ```
 
 - `rake test`は、単体と結合の両方を実行します。
-- `rake test:unit`は、gemとCLIのpicotest、CRubyのツールのテスト、送信経路の検査（`rake check:send_paths`）、Swiftの単体テストを実行します。
+- `rake test:unit`は、CLIのpicotest、CRubyのツールのテスト、送信経路の検査（`rake check:send_paths`）、Swiftの単体テストを実行します。gemの単体テストは、gemのrepoで実行します。
 - `rake test:integration`は、製品VMを使うCRubyのテストとSwiftの結合テストを実行します。製品VMは`rake vm:build`で作ります。
-- `SUITE`（`gem`または`cli`）と`FILTER`（ファイル名の一部）で、picotestを絞り込めます。
-
+- `FILTER`（ファイル名の一部）で、picotestを絞り込めます。
 - `rake test:e2e`は、カードのfixtureからCLIのプレビューPNGを作り、`claude -p`が期待（`test/e2e/preview/`）と照らして判定します。トークンを使うので、`rake test`には含まれません。
 
 どれも実機なしで動きます。

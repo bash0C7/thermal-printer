@@ -100,9 +100,8 @@
                  │ require 'phomemo_thermal_printer'
                  ▼
  mrbgem picoruby-phomemo-thermal-printer
-   ├ mrblib/        共通層（純 Ruby・OS 非依存: コマンド組み立て、行ブロック単位の送出、ステータス decode）
-   └ ports/darwin/  BLE トランスポート（picoruby-ble darwin 版の癖をここに閉じ込める）
-                    （将来 ports/rp2040・ports/esp32 を足せる形。今回は作らない）
+   └ mrblib/  純 Ruby: コマンド組み立て、行ブロック単位の送出、ステータス decode
+              BLE トランスポート（picoruby-ble の公開 API とフックだけを使う。darwin の癖はここに閉じ込める）
                  │ BLE（write without response / notify）
                  ▼
  Phomemo T02
@@ -164,7 +163,7 @@
   - UUID は `uuid128` で照合する。
   - ADV に service UUID が載らないので、名前で絞るしかない。
   - 発見時に、読めるものを全部 read する。
-- 【ユーザー決定】上の「足りないこと」と「罠」への回避策は、すべて gem の `ports/darwin` に閉じ込める（§5.1）。
+- 【ユーザー決定】上の「足りないこと」と「罠」への回避策は、すべて gem の `Transport` と `Packet`（`mrblib/phomemo_thermal_printer/`）に閉じ込める（§5.1）。
 - **TCC（Bluetooth 権限）**: 食い違いがあり、未検証。
   - 「CoreBluetooth を使う picoruby をシェルから直接 exec すると SIGABRT」（R2P2-darwin、stackchan の README）
   - 「ターミナルの許可で直接動く」（port README、stackchan CLAUDE.md）
@@ -189,33 +188,34 @@
 - mruby 専用。
 - トランスポートは BLE のみ。
 - picoruby-ble に依存する。
-- **マイコン（Pico 2 W / ESP32）を見据える。** 他の mrbgem と同じく `ports/` ディレクトリを作り、darwin 依存部分は `ports/darwin` に固める。
+- **マイコン（Pico 2 W / ESP32）を見据える。** `Transport` と `Packet` は、PicoRuby の標準 API と picoruby-ble の公開 API だけを使い、OS 固有のコードを含まないので、`mrblib/` に置く。`ports/` ディレクトリは作らない。
 - 印刷データは**行ブロック単位で流す API**にする。ジョブ全体を 1 本の String に組まない。
-- darwin 固有の回避策は `ports/darwin` 側に閉じ込める。対象は次のとおり。
+- darwin の port で必要な回避策は、`Transport` と `Packet` に閉じ込める。対象は次のとおり。
   - write の戻り値が常に 0
   - CCCD 書き込みの完了イベントが無い
   - uint8 の合成 handle
   - 切断パケット `[0x3E,0x01,0x05]` の判定
   - `scan` 後の `pop_and_dispatch` 自前ループ
   - その他の §4.3 の罠
-- picoruby の `port-darwin` は commit を固定せず、ブランチの先頭に追従する。進行中の BLE 共通 API の変更（pr427: `start` のポーリング化、`BLE_push_event` の戻り値変更など）が入っても、影響が `ports/darwin` の中で収まる構造にする。
+- picoruby の `port-darwin` は commit を固定せず、ブランチの先頭に追従する。進行中の BLE 共通 API の変更（pr427: `start` のポーリング化、`BLE_push_event` の戻り値変更など）が入っても、影響が `Transport` と `Packet` の中で収まる構造にする。
 
 （ユーザーの綴りは `picoruby-phomeno-thermal-printer` だったが、機種名 Phomemo の誤記と解釈して `phomemo` にする。【Claude の判断】）
 
 #### 5.1.1 構成
 
 ```
-mrbgems/picoruby-phomemo-thermal-printer/
+picoruby-phomemo-thermal-printer/        # 独立した repo（bash0C7/picoruby-phomemo-thermal-printer）
   mrbgem.rake          # ASCII のみ。add_dependency 'picoruby-ble'
-  mrblib/              # 機種・OS に依存しない層（picoruby-ble も参照しない）
-  ports/
-    darwin/            # macOS の picoruby-ble（CoreBluetooth）向けトランスポート
-                       # （将来 rp2040/ esp32/ を足せる形。今回は作らない）
+  mrblib/
+    phomemo_thermal_printer/
+      transport.rb     # Link（BLE のサブクラス）と Transport。picoruby-ble を使う
+      packet.rb        # HCI パケットと GATT の読み取り。純 Ruby
+      （上記以外は BLE を知らない層）
   sig/
   test/
 ```
 
-- **`mrblib/`（共通層。BLE を知らない、純 Ruby）**
+- **`mrblib/` のコア（BLE を知らない、純 Ruby）**
   - §6.4 のジョブを組み立てる。ただし**行ブロック単位で送り出す**。
     1. 前置き: `1b 40` → `1b 61 00` → `1f 11 02 nn`
     2. 255 行以下の `GS v 0` ブロックを、1 つずつ作っては渡す。ヘッダ 8 byte + 48×y byte。
@@ -235,22 +235,21 @@ mrbgems/picoruby-phomemo-thermal-printer/
     5. 届いた notify を取り出す（ブロックしない）
     6. 切断する（できない port では何もしない）
   - 契約の外に picoruby-ble の内部（`@event_queue`、`_event_popped`、`@conn_handle`、パケットの形）を漏らさない。
-- **`ports/darwin/`（darwin 版 picoruby-ble 専用）**
-  - `class ... < BLE` のサブクラスで契約を実装する。手順:
+- **`Transport` と `Packet`（`transport.rb`、`packet.rb`）**
+  - `class Link < BLE` のサブクラスが、上書き用のフック（`advertising_report_callback`、`packet_callback`）で `Transport` にイベントを渡し、`Transport` が契約を実装する。手順:
     1. 名前の前方一致 `T02` で scan → connect → 発見。
     2. `uuid128` で `ff00` / `ff02` / `ff03` を引く。揃わなければ別機種として中止する（§6.1）。
     3. `ff03` の CCCD を購読する。完了通知が来ないので、一定時間 drain しながら待つ。
-    4. `scan` が戻った後は、`pop_and_dispatch` 相当の自前ループで、write と notify の受け取りを回す。
-    5. notify（0xA7）を自前で decode する。
+    4. scan のループを別の `Task` で回し続ける。接続したあとに `scan` や `start` を呼ばない（darwin の port は、新しい scan で接続を取り消す）。`Session` はメイン側で逐次に動かす。
+    5. 接続番号と notify（0xA7）は、フックに渡るパケットから自前で decode する。
   - 切断は `[0x3E,0x01,0x05]` と `[0x05,...]` の両方を判定する。
   - write の戻り値（常に 0）を信用しない。
-  - 手本は stackchan-picoruby の `picoruby-stackchan-controller`（`radio.rb` / `central.rb` / `gatt.rb`）。
-  - **picoruby-ble の内部に触るコードは、ここにだけ置く**。`port-darwin` の先頭が変わって壊れたら、直すのはここだけで済むようにする。
-  - Ruby のファイルを `ports/darwin` に置いて、darwin のビルドのときだけ組み込む方法は【builder に任せる】。ただし、picoruby の既存 gem に前例があればそれに合わせる。無ければ `mrbgem.rake` で `build.darwin?` のときに `ports/darwin` の `.rb` を足す、など最小の仕掛けにする。
+  - **picoruby-ble の内部には触れない**。公開 API と、上書き用のフックだけを使う。`rake check:send_paths` が内部名を検査する。`port-darwin` の先頭が変わって壊れたら、直すのは `Transport` と `Packet` だけで済むようにする。
+  - `transport.rb` と `packet.rb` は `mrblib/` に置く。PicoRuby の標準 API と picoruby-ble の公開 API だけを使い、OS 固有の API を含まないので、port ごとのディレクトリや `build.darwin?` の分岐を持たない。BLE を持たないテスト VM には、`transport.rb` を読み込まない。
 
 #### 5.1.2 マイコン実機について
 
-【Claude の判断】マイコン（Pico 2 W / ESP32）実機での確認は、今回の完了条件に入れない。`ports/rp2040`・`ports/esp32` も作らない。
+【Claude の判断】マイコン（Pico 2 W / ESP32）実機での確認は、今回の完了条件に入れない。他の port のための追加の作り込みも行わない。
 
 共通層が darwin に依存していないことは、次の 2 点で担保する。
 
@@ -264,7 +263,7 @@ mrbgems/picoruby-phomemo-thermal-printer/
 - 依存の置き方
   - gem の `mrbgem.rake` に `spec.add_dependency 'picoruby-ble'` を書く（ユーザー指示どおり）。
   - テストは stackchan 方式にする。`mrblib/` の source を、BLE を含まない test VM に埋め込み、契約を満たす fake トランスポートを注入する。
-  - `ports/darwin` のうち、パケットの decode や切断判定のように無線なしで確かめられる部分は、合成したバイト列で単体テストする。picoruby-ble の `decoder_contract_test.rb` が前例。
+  - `Packet`（パケットの decode や切断判定のように無線なしで確かめられる部分）は、合成したバイト列で単体テストする。picoruby-ble の `decoder_contract_test.rb` が前例。
 - 送信の方針
   - picoruby-ble は今のまま使う（決め打ちチャンク長 + 毎チャンク `sleep_ms`）。
   - 初期値は **128 byte / 20 ms**（§6.5）。根拠は、4 実装で一致し、`02 b6 00` から推測される上限 182 より下にあること。
@@ -676,13 +675,7 @@ thermal-printer/
   build_config/
     darwin-thermal-printer.rb    # 製品用: RD の darwin-ble 設定 + hal-task-darwin + 本 gem
     picoruby-test.rb             # テスト用 VM（BLE なし + picotest）
-  mrbgems/
-    picoruby-phomemo-thermal-printer/
-      mrbgem.rake                # ASCII のみ
-      mrblib/                    # 共通層（OS・BLE 非依存、トランスポート契約）
-      ports/darwin/              # darwin 版 picoruby-ble 向けトランスポート（§5.1）
-      sig/
-      test/
+  vendor/picoruby-phomemo-thermal-printer/   # gem の repo（rake vendor:setup が取得する）
   cli/                           # print.rb など（picoruby で実行）
   bin/phomemo-print              # sh ラッパー
   test/                          # 外置き gem 用の picotest runner（stackchan / DH 方式）
@@ -716,7 +709,7 @@ thermal-printer/
 | 段 | 内容 | 完了の条件 |
 |---|---|---|
 | M0 spike（捨てる前提） | Ruby 3.4+ の用意。R2P2-darwin の setup（`port-darwin` の先頭を clone。使った commit を記録する）。build_config を作ってビルド。TCC の 4 経路を最小の scan スクリプトで試す。T02 の GATT ダンプ（`gatt_dump_probe.rb`、読むだけで何も書かない） | 通る起動経路が決まる。実機でアドバタイズ名 `T02` と `ff00` / `ff02` / `ff03` を確認できる。下のチェックリストの 1・2・13・15 に答えが出る |
-| M1 gem + CLI | TDD で共通層（§6.4〜6.8、allowlist、行ブロック単位の送出、トランスポート契約）。`ports/darwin` のトランスポート。`bin/phomemo-print`（PBM を行ブロック単位で読む、排他ロック） | テストパターンの PBM と写真の PBM が実機で正しく印字される。`--status` が動く。共通層のテストが BLE なしの host VM で通る。**下の実機確認チェックリストの全項目に、結果か「v1 では使わない」が記録されている** |
+| M1 gem + CLI | TDD で共通層（§6.4〜6.8、allowlist、行ブロック単位の送出、トランスポート契約）。BLE の `Transport`。`bin/phomemo-print`（PBM を行ブロック単位で読む、排他ロック） | テストパターンの PBM と写真の PBM が実機で正しく印字される。`--status` が動く。共通層のテストが BLE なしの host VM で通る。**下の実機確認チェックリストの全項目に、結果か「v1 では使わない」が記録されている** |
 | M2 Mac アプリ | 画面 C。テキスト / markdown / 画像（「iPhone から読み込む」を含む）/ カード（GitHub / Slack URL / 知らない URL / リマインダー）。今日のカード。長さの警告。状態表示（起動時・手動更新・印刷後）。CLI 呼び出し | 3 つの場面（タスク札数枚、会議メモ、写真）が実機で印字され、はみ出しが無い |
 | M3 skill | Slack URL → カード JSON → アプリ | Slack のカードが実機で印字される |
 
@@ -755,8 +748,8 @@ thermal-printer/
 - `mrbgem.rake` は ASCII のみ。
 - `vendor/` は生成物で、commit しない。
 - `port-darwin`、R2P2-darwin、stackchan-picoruby など、既存の repo は直接変えない。変える必要が出たら、ユーザーに確認する。
-- 【ユーザー決定】`port-darwin` はブランチの先頭に追従する。先頭の変更（pr427 の BLE 共通 API 変更など）で壊れたら、直すのは gem の `ports/darwin` の中だけにする。【Claude の判断】`port-darwin` 自体の改修が要ると判断したら、手を入れる前に、その時点でユーザーに相談する。この規律は repo の CLAUDE.md などにも残す。
-- picoruby-ble の内部（`@event_queue`、`_event_popped`、`@conn_handle`、パケットの形）に触るコードを `ports/darwin` の外に書かない。
+- 【ユーザー決定】`port-darwin` はブランチの先頭に追従する。先頭の変更（pr427 の BLE 共通 API 変更など）で壊れたら、直すのは gem の `Transport` と `Packet` の中だけにする。【Claude の判断】`port-darwin` 自体の改修が要ると判断したら、手を入れる前に、その時点でユーザーに相談する。この規律は repo の CLAUDE.md などにも残す。
+- picoruby-ble の内部（`@event_queue`、`_event_popped`、`@conn_handle`、パケットの形）に触るコードを、どこにも書かない。公開 API と、上書き用のフックだけを使う。
 - PicoRuby と CRuby の差（`rescue` 内の裸 `raise`、`module_function`、regexp の `|` など）は stackchan の CLAUDE.md に実測メモがある。
 
 ---
@@ -818,7 +811,7 @@ thermal-printer/
   - 写真の既定値
 - 要約のプロンプト文と文字数の目安の微調整。
 - Ruby 3.4+ の用意の仕方（mise で 4.0.5 を入れる、または入っている 4.0.x を使う）。ただし、システムの 2.6 は使わない。
-- `ports/darwin` の Ruby（と、要るなら C）を darwin のビルドだけに組み込む仕掛け（picoruby の既存 gem の前例に合わせる）。トランスポート契約のメソッド名。
+- トランスポート契約のメソッド名。
 - 1 行ブロックの行数（255 以下）。
 - CLI の排他の実装（ロックファイルの置き場所など）。
 - 「iPhone から読み込む」にカメラ権限などの宣言が要るかの確認と、その対応。

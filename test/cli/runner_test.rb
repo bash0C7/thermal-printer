@@ -4,7 +4,7 @@ class RunnerTest < Picotest::Test
   HEX = "0123456789abcdef"
 
   def fixture_path(name)
-    File.join(ENV["THERMAL_PRINTER_REPO_ROOT"], "mrbgems", "picoruby-phomemo-thermal-printer", "test", "fixtures", name)
+    File.join(ENV["THERMAL_PRINTER_REPO_ROOT"], "test", "fixtures", name)
   end
 
   def tmp_path(name, ext)

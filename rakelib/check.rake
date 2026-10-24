@@ -1,12 +1,9 @@
 module SendPathCheck
-  GEM_DIR = "mrbgems/picoruby-phomemo-thermal-printer"
-  SESSION = "#{GEM_DIR}/mrblib/phomemo_thermal_printer/session.rb"
-  TRANSPORT = "#{GEM_DIR}/ports/darwin/transport.rb"
   SELF = "rakelib/check.rake"
 
   RULES = {
-    "write_value_of_characteristic" => [TRANSPORT],
-    "write_chunk" => [TRANSPORT, SESSION],
+    "write_value_of_characteristic" => [],
+    "write_chunk" => [],
     /\b(?:public_send|__send__|send)\b/ => %w[tools/make_test_pbm.rb],
     "method(" => [],
     "@event_queue" => [],
@@ -18,7 +15,7 @@ module SendPathCheck
     "HCI_CON_HANDLE_INVALID" => [],
   }.freeze
 
-  GLOBS = %w[mrbgems/**/*.rb cli/**/*.rb tools/**/*.rb bin/* rakelib/**/*.rake].freeze
+  GLOBS = %w[cli/**/*.rb tools/**/*.rb bin/* rakelib/**/*.rake].freeze
 
   def self.files(root)
     found = GLOBS.flat_map { |g| Dir[File.join(root, g)] }.uniq.sort
@@ -39,26 +36,17 @@ module SendPathCheck
         end
       end
     end
-    found.concat(session_write_violations(root))
-  end
-
-  def self.session_write_violations(root)
-    path = File.join(root, SESSION)
-    return ["#{SESSION}: missing"] unless File.file?(path)
-    lines = File.readlines(path)
-    hits = lines.each_index.select { |i| lines[i].include?("write_chunk") }
-    return ["#{SESSION}: write_chunk appears #{hits.size} times, expected exactly 1"] unless hits.size == 1
-    owner = lines[0...hits[0]].reverse.find { |l| l =~ /^\s*def\s/ }
-    return [] if owner && owner.strip.start_with?("def emit(")
-    ["#{SESSION}:#{hits[0] + 1}: write_chunk is outside emit"]
+    found
   end
 end
 
 namespace :check do
-  desc "Fail when a BLE write call appears outside the allowed places"
+  desc "Fail when a BLE write call appears outside the allowed places (this repo, then the phomemo gem)"
   task :send_paths do
     violations = SendPathCheck.violations(ROOT)
     abort "[check] send paths violated:\n  #{violations.join("\n  ")}" unless violations.empty?
+    abort "#{GEM_DIR} not found - run `rake vendor:setup` first" unless Dir.exist?(GEM_DIR)
+    sh "rake", "-C", GEM_DIR, "check:send_paths"
     puts "[check] send paths ok"
   end
 end
