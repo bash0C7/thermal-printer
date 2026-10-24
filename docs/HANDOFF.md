@@ -5,7 +5,7 @@
 ## 状態
 
 - gem、CLI、Mac アプリは揃っている。BLE は `picoruby-ble` の公開 API とフックだけで動く。
-- 実機（T02）への印字は、CLI 経由とアプリ経由の両方で確認している。紙面の配置は `README.md` の「紙面の配置」にある。
+- 実機（T02）への印字は、CLI 経由とアプリ経由の両方で確認している。最終レイアウトでアプリが issue #1 のカードを印字し、紙面も QR コードも許容範囲だった（`docs/research/t02-device-notes.md`）。紙面の配置は `README.md` の「紙面の配置」にある。
 - テストは単体、結合、E2E の 3 層。`rake test` が単体と結合、`rake test:e2e` が E2E、`rake app:uitest` が UI テスト。
 - 製品 VM（`vendor/R2P2-darwin/build/host/bin/picoruby`）は gem と CLI のソースを変えるたびに `rake vm:build` で作り直す。
 
