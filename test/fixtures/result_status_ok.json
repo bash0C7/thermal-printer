@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "mode": "status",
+  "ok": true,
+  "error": null,
+  "exit_code": 0,
+  "hint": null,
+  "warnings": [],
+  "status": {"battery": 83, "paper": "ok", "cover": "closed", "temperature": "normal",
+             "firmware": "3.0.7", "serial": "Q114E48T2580915", "auto_off": 12},
+  "job": null,
+  "notify": {"acks": 0, "max_write": 182, "events": ["1a3b0440000000"]},
+  "completion": null,
+  "elapsed_ms": 1840
+}

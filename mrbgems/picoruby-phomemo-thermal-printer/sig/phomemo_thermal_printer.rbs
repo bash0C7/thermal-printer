@@ -1,0 +1,24 @@
+module PhomemoThermalPrinter
+  class Error < StandardError
+  end
+
+  class FormatError < Error
+  end
+
+  interface _Transport
+    def connect: (String name_prefix, Integer timeout_ms) -> bool
+    def gatt_report: () -> Hash[String, bool]
+    def subscribe: (Integer settle_ms) -> bool
+    def write_chunk: (String bytes) -> void
+    def poll_notifications: () -> Array[String]?
+    def disconnect: () -> void
+  end
+
+  interface _Clock
+    def now_ms: () -> Integer
+  end
+
+  interface _Sleeper
+    def sleep_ms: (Integer ms) -> void
+  end
+end

@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "kind": "slack",
+  "url": "https://example.slack.com/archives/C0123456789/p1792565843307099?thread_ts=1792565800.000100&cid=C0123456789",
+  "header": {
+    "lines": ["example"],
+    "emphasis": "#dev-printer",
+    "sublines": ["2026/10/23(金) 15:42", "bash0C7"]
+  },
+  "title": "紙ロールの在庫を月初に確認して発注",
+  "sections": [
+    { "label": null, "text": "来月の展示会でデモに使うので、予備ロールを 10 本確保したいという依頼。" }
+  ]
+}

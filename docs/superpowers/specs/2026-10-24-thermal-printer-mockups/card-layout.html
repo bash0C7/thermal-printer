@@ -1,0 +1,148 @@
+<style>
+  .papers { display:flex; flex-wrap:wrap; gap:28px; align-items:flex-start; }
+  .paper-card { cursor:pointer; border:3px solid transparent; border-radius:10px; padding:10px; }
+  .paper-card.selected { border-color:#3b82f6; }
+  .paper-card h3 { margin:0 0 4px; }
+  .paper-card .note { font-size:13px; opacity:.75; margin:0 0 10px; max-width:420px; }
+  .strip { width:418px; background:#fff; box-shadow:0 2px 10px rgba(0,0,0,.25); padding:0; }
+  .paper {
+    width:384px; padding:16px 17px 14px; background:#fff; color:#000;
+    font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN",sans-serif;
+    font-weight:600; font-size:19px; line-height:1.45;
+  }
+  .paper *{ color:#000; }
+  .cut { border-top:2px dashed #000; margin:0 6px; position:relative; height:0; }
+  .cut::after { content:"✂"; position:absolute; left:-4px; top:-14px; font-size:16px; background:#fff; color:#000; }
+  .meta { font-size:16px; font-weight:700; }
+  .title { font-size:27px; font-weight:900; line-height:1.25; margin:4px 0 8px; }
+  .lbl { font-size:15px; font-weight:900; border-bottom:3px solid #000; display:inline-block; margin:6px 0 2px; }
+  .body p { margin:0 0 4px; }
+  .qr svg { display:block; }
+  .small { font-size:14px; font-weight:700; word-break:break-all; }
+  .row { display:flex; gap:10px; align-items:flex-start; }
+  .grow { flex:1; min-width:0; }
+</style>
+
+<h2>タスク札（GitHub / Slack カード）の組み方、どれが好み？</h2>
+<p class="subtitle">markdown と同じ A（ミニマル）の字組みで、QR の置き場所だけ変えた 3 案。各案とも上が GitHub、下が Slack。✂ は切り取り線（カード間の余白）。クリックで選択、組み合わせ指定も歓迎。</p>
+
+<div class="papers">
+
+  <!-- A: QR 下に大きく -->
+  <div class="paper-card" data-choice="a" onclick="document.querySelectorAll('.paper-card').forEach(e=>e.classList.remove('selected'));toggleSelect(this)">
+    <h3>A. QR は下に大きく</h3>
+    <p class="note">本文を全幅で読ませて、最後に QR。読み取りやすいが 1 枚が長め（約 9〜10cm）。</p>
+    <div class="strip">
+      <div class="paper">
+        <div class="meta">bash0C7/thermal-printer #12 ・ open</div>
+        <div class="title">長い出力のときに GUI で警告を出す</div>
+        <div class="lbl">概要</div>
+        <div class="body"><p>印字長が閾値を超えたら、印刷前に確認を出す。閾値は設定で変更できるようにする。</p></div>
+        <div class="lbl">最新コメント（2日前）</div>
+        <div class="body"><p>閾値は 50cm でもよいかも。ロール 1 本の長さも考慮したい。</p></div>
+        <div class="qr" style="display:flex;flex-direction:column;align-items:center;margin-top:10px">
+          <svg class="fakeqr" data-size="168" data-seed="3"></svg>
+        </div>
+      </div>
+      <div class="cut"></div>
+      <div class="paper">
+        <div class="meta">myteam ・ #dev-printer</div>
+        <div class="meta">2026/10/23(金) 15:42</div>
+        <div class="title" style="font-size:23px">紙ロールの在庫を月初に確認して発注</div>
+        <div class="lbl">要約</div>
+        <div class="body"><p>来月の展示会でデモに使うので、予備ロールを 10 本確保したいという依頼。</p></div>
+        <div class="qr" style="display:flex;flex-direction:column;align-items:center;margin-top:10px">
+          <svg class="fakeqr" data-size="168" data-seed="7"></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- B: QR 右上に小さく -->
+  <div class="paper-card" data-choice="b" onclick="document.querySelectorAll('.paper-card').forEach(e=>e.classList.remove('selected'));toggleSelect(this)">
+    <h3>B. QR は右上に</h3>
+    <p class="note">出どころ情報と QR を上段にまとめ、タイトル以下は全幅。いちばん短い（約 7cm）。QR はやや小さめ。</p>
+    <div class="strip">
+      <div class="paper">
+        <div class="row">
+          <div class="grow">
+            <div class="meta">bash0C7/<br>thermal-printer</div>
+            <div class="meta" style="font-size:30px;font-weight:900;line-height:1.1;margin-top:4px">#12</div>
+            <div class="meta">open ・ 更新 2日前</div>
+          </div>
+          <div class="qr"><svg class="fakeqr" data-size="128" data-seed="3"></svg></div>
+        </div>
+        <div class="title">長い出力のときに GUI で警告を出す</div>
+        <div class="body"><p>印字長が閾値を超えたら、印刷前に確認を出す。閾値は設定で変更可。</p></div>
+        <div class="lbl">最新コメント</div>
+        <div class="body"><p>閾値は 50cm でもよいかも。ロール 1 本の長さも考慮。</p></div>
+      </div>
+      <div class="cut"></div>
+      <div class="paper">
+        <div class="row">
+          <div class="grow">
+            <div class="meta">myteam</div>
+            <div class="meta" style="font-size:22px;font-weight:900">#dev-printer</div>
+            <div class="meta">2026/10/23(金)<br>15:42</div>
+          </div>
+          <div class="qr"><svg class="fakeqr" data-size="128" data-seed="7"></svg></div>
+        </div>
+        <div class="title" style="font-size:23px">紙ロールの在庫を月初に確認して発注</div>
+        <div class="body"><p>来月の展示会でデモに使うので、予備ロールを 10 本確保したいという依頼。</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- C: 下段にチケットの半券風 -->
+  <div class="paper-card" data-choice="c" onclick="document.querySelectorAll('.paper-card').forEach(e=>e.classList.remove('selected'));toggleSelect(this)">
+    <h3>C. 下段に半券（QR 左＋出どころ右）</h3>
+    <p class="note">タイトルから読み始め、最後に「QR＋どこの何か」を 1 段にまとめる。チケットっぽい。長さは中間（約 8cm）。</p>
+    <div class="strip">
+      <div class="paper">
+        <div class="title">長い出力のときに GUI で警告を出す</div>
+        <div class="body"><p>印字長が閾値を超えたら、印刷前に確認を出す。閾値は設定で変更可。</p></div>
+        <div class="lbl">最新コメント（2日前）</div>
+        <div class="body"><p>閾値は 50cm でもよいかも。ロール 1 本の長さも考慮。</p></div>
+        <div class="row" style="margin-top:10px;border-top:3px solid #000;padding-top:8px">
+          <div class="qr"><svg class="fakeqr" data-size="136" data-seed="3"></svg></div>
+          <div class="grow">
+            <div class="meta">bash0C7/<br>thermal-printer</div>
+            <div class="meta" style="font-size:30px;font-weight:900;line-height:1.1;margin-top:4px">#12</div>
+            <div class="meta">open</div>
+          </div>
+        </div>
+      </div>
+      <div class="cut"></div>
+      <div class="paper">
+        <div class="title" style="font-size:23px">紙ロールの在庫を月初に確認して発注</div>
+        <div class="body"><p>来月の展示会でデモに使うので、予備ロールを 10 本確保したいという依頼。</p></div>
+        <div class="row" style="margin-top:10px;border-top:3px solid #000;padding-top:8px">
+          <div class="qr"><svg class="fakeqr" data-size="136" data-seed="7"></svg></div>
+          <div class="grow">
+            <div class="meta">myteam</div>
+            <div class="meta" style="font-size:22px;font-weight:900">#dev-printer</div>
+            <div class="meta">2026/10/23(金)<br>15:42</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top:18px">※ QR はダミー模様。Slack の「タイトル」は発言の要約を一行に縮めたもの、という想定です（アプリ単体で作る場合は channel 名の代わりに channel ID が入ります）。</p>
+
+<script>
+(function(){
+  function rng(seed){ let s=seed*2654435761>>>0; return ()=>{ s^=s<<13; s>>>=0; s^=s>>17; s^=s<<5; s>>>=0; return (s%1000)/1000; }; }
+  document.querySelectorAll('svg.fakeqr').forEach(svg=>{
+    const n=29, size=+svg.dataset.size, m=size/n, r=rng(+svg.dataset.seed);
+    svg.setAttribute('width',size); svg.setAttribute('height',size); svg.setAttribute('viewBox',`0 0 ${n} ${n}`);
+    let d='';
+    const finder=(x,y)=>{ d+=`M${x} ${y}h7v7h-7z M${x+1} ${y+1}v5h5v-5z M${x+2} ${y+2}h3v3h-3z `; };
+    const inFinder=(x,y)=> (x<8&&y<8)||(x>=n-8&&y<8)||(x<8&&y>=n-8);
+    for(let y=0;y<n;y++) for(let x=0;x<n;x++){ if(!inFinder(x,y) && r()<0.5) d+=`M${x} ${y}h1v1h-1z `; }
+    finder(0,0); finder(n-7,0); finder(0,n-7);
+    svg.innerHTML=`<rect width="${n}" height="${n}" fill="#fff"/><path d="${d}" fill="#000" fill-rule="evenodd"/>`;
+  });
+})();
+</script>

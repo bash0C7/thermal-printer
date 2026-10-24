@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "mode": "print",
+  "ok": false,
+  "error": "not_found",
+  "exit_code": 10,
+  "hint": "T02 was not found. Press the power button to wake it, disconnect the official app, and check that Bluetooth access is allowed for this app.",
+  "warnings": [],
+  "status": null,
+  "job": null,
+  "notify": null,
+  "completion": null,
+  "elapsed_ms": 10012
+}

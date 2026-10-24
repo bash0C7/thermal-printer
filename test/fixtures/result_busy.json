@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "mode": "status",
+  "ok": false,
+  "error": "busy",
+  "exit_code": 12,
+  "hint": "Another phomemo-print is running. Wait for it to finish.",
+  "warnings": [],
+  "status": null,
+  "job": null,
+  "notify": null,
+  "completion": null,
+  "elapsed_ms": 0
+}

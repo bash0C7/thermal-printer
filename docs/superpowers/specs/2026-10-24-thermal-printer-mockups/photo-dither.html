@@ -1,0 +1,142 @@
+<style>
+  .drop { border:3px dashed #888; border-radius:10px; padding:18px; text-align:center; margin:0 0 14px; }
+  .drop.over { border-color:#3b82f6; background:rgba(59,130,246,.08); }
+  .ctrls { display:flex; flex-wrap:wrap; gap:18px; margin:0 0 16px; font-size:14px; align-items:center; }
+  .ctrls label { display:flex; gap:6px; align-items:center; }
+  .ctrls output { min-width:3em; display:inline-block; }
+  .papers { display:flex; flex-wrap:wrap; gap:24px; align-items:flex-start; }
+  .paper-card { cursor:pointer; border:3px solid transparent; border-radius:10px; padding:10px; }
+  .paper-card.selected { border-color:#3b82f6; }
+  .paper-card h3 { margin:0 0 4px; }
+  .paper-card .note { font-size:13px; opacity:.75; margin:0 0 10px; max-width:400px; }
+  .strip { background:#fff; padding:14px 17px; box-shadow:0 2px 10px rgba(0,0,0,.25); display:inline-block; }
+  canvas.out { display:block; width:384px; image-rendering:pixelated; }
+  body.zoom canvas.out { width:768px; }
+</style>
+
+<h2>記念写真の白黒化、どれが好み？</h2>
+<p class="subtitle">感熱紙は灰色が出せないので、黒点の散らし方で濃淡を表現します。手元の写真（人が写っているものがおすすめ）をここにドロップ / ⌘V 貼り付け / 選択すると、実際の印字幅 384 dot で 3 方式を並べます。スライダーは 3 方式に共通。</p>
+
+<div class="drop" id="drop">
+  写真をここにドロップ、⌘V で貼り付け、または <input type="file" id="file" accept="image/*">
+</div>
+
+<div class="ctrls">
+  <label>明るさ <input type="range" id="bri" min="-80" max="80" value="0"><output id="briv">0</output></label>
+  <label>コントラスト <input type="range" id="con" min="50" max="200" value="100"><output id="conv">1.00</output></label>
+  <label>ガンマ <input type="range" id="gam" min="50" max="200" value="100"><output id="gamv">1.00</output></label>
+  <label><input type="checkbox" id="zoom"> 2倍表示（点の様子を見る）</label>
+</div>
+
+<div class="papers">
+  <div class="paper-card" data-choice="floyd" onclick="pick(this)">
+    <h3>1. 誤差拡散（Floyd–Steinberg）</h3>
+    <p class="note">いちばん一般的。階調がなめらかで写真らしい。細かい砂目。</p>
+    <div class="strip"><canvas class="out" id="c-floyd"></canvas></div>
+  </div>
+  <div class="paper-card" data-choice="atkinson" onclick="pick(this)">
+    <h3>2. Atkinson（初代 Mac 風）</h3>
+    <p class="note">コントラスト強め、明部と暗部がすっきり。顔がくっきりしやすいが、影の階調は飛びやすい。</p>
+    <div class="strip"><canvas class="out" id="c-atkinson"></canvas></div>
+  </div>
+  <div class="paper-card" data-choice="bayer" onclick="pick(this)">
+    <h3>3. 網点（Bayer 8×8）</h3>
+    <p class="note">規則的な格子模様。レトロな印刷物っぽい。細部は弱い。</p>
+    <div class="strip"><canvas class="out" id="c-bayer"></canvas></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const W = 384;
+  let src = null; // HTMLImageElement or canvas
+
+  window.pick = function(el){
+    document.querySelectorAll('.paper-card').forEach(e=>e.classList.remove('selected'));
+    toggleSelect(el);
+  };
+
+  function sample(){
+    const c = document.createElement('canvas'); c.width = 600; c.height = 450;
+    const g = c.getContext('2d');
+    const bg = g.createLinearGradient(0,0,600,450); bg.addColorStop(0,'#dfe9f3'); bg.addColorStop(1,'#5a6b7d');
+    g.fillStyle = bg; g.fillRect(0,0,600,450);
+    const face = (x,y,r,skin)=>{ g.fillStyle=skin; g.beginPath(); g.arc(x,y,r,0,7); g.fill();
+      g.fillStyle='#222'; g.beginPath(); g.arc(x-r*.35,y-r*.15,r*.09,0,7); g.arc(x+r*.35,y-r*.15,r*.09,0,7); g.fill();
+      g.strokeStyle='#5a2e1e'; g.lineWidth=r*.07; g.beginPath(); g.arc(x,y+r*.15,r*.4,.2*Math.PI,.8*Math.PI); g.stroke();
+      g.fillStyle='#2b1d14'; g.beginPath(); g.arc(x,y-r*.35,r*.95,Math.PI*1.05,Math.PI*1.95); g.fill(); };
+    face(200,210,95,'#f1c9a5'); face(400,230,85,'#c98e64');
+    g.fillStyle='#334'; g.fillRect(90,320,220,140); g.fillStyle='#a33'; g.fillRect(300,330,200,130);
+    g.font='bold 28px sans-serif'; g.fillStyle='#fff'; g.fillText('サンプル（写真をドロップしてね）',60,40);
+    return c;
+  }
+
+  function gray(){
+    const h = Math.round(src.height * W / src.width);
+    const c = document.createElement('canvas'); c.width = W; c.height = h;
+    const g = c.getContext('2d'); g.imageSmoothingQuality='high'; g.drawImage(src,0,0,W,h);
+    const d = g.getImageData(0,0,W,h).data;
+    const bri = +document.getElementById('bri').value;
+    const con = +document.getElementById('con').value/100;
+    const gam = +document.getElementById('gam').value/100;
+    const v = new Float32Array(W*h);
+    for (let i=0;i<W*h;i++){
+      let y = 0.299*d[i*4]+0.587*d[i*4+1]+0.114*d[i*4+2];
+      y = 255*Math.pow(y/255, gam);
+      y = (y-128)*con+128+bri;
+      v[i] = y;
+    }
+    return {v, h};
+  }
+
+  function render(id, bits, h){
+    const c = document.getElementById(id); c.width = W; c.height = h;
+    const g = c.getContext('2d'); const im = g.createImageData(W,h);
+    for (let i=0;i<W*h;i++){ const p = bits[i] ? 0 : 255; im.data[i*4]=im.data[i*4+1]=im.data[i*4+2]=p; im.data[i*4+3]=255; }
+    g.putImageData(im,0,0);
+  }
+
+  function diffuse(v0, h, kernel, div){
+    const v = Float32Array.from(v0); const out = new Uint8Array(W*h);
+    for (let y=0;y<h;y++) for (let x=0;x<W;x++){
+      const i = y*W+x; const o = v[i] < 128 ? 0 : 255; out[i] = o===0 ? 1 : 0;
+      const err = (v[i]-o)/div;
+      for (const [dx,dy,w] of kernel){ const xx=x+dx, yy=y+dy; if (xx>=0&&xx<W&&yy<h) v[yy*W+xx] += err*w; }
+    }
+    return out;
+  }
+
+  const B8 = [[0,32,8,40,2,34,10,42],[48,16,56,24,50,18,58,26],[12,44,4,36,14,46,6,38],[60,28,52,20,62,30,54,22],
+              [3,35,11,43,1,33,9,41],[51,19,59,27,49,17,57,25],[15,47,7,39,13,45,5,37],[63,31,55,23,61,29,53,21]];
+  function bayer(v, h){
+    const out = new Uint8Array(W*h);
+    for (let y=0;y<h;y++) for (let x=0;x<W;x++){ const t = (B8[y&7][x&7]+0.5)*4; out[y*W+x] = v[y*W+x] < t ? 1 : 0; }
+    return out;
+  }
+
+  function update(){
+    if (!src) return;
+    ['bri','con','gam'].forEach(k=>{ const e=document.getElementById(k); document.getElementById(k+'v').textContent = k==='bri'? e.value : (e.value/100).toFixed(2); });
+    const {v,h} = gray();
+    render('c-floyd', diffuse(v,h,[[1,0,7],[-1,1,3],[0,1,5],[1,1,1]],16), h);
+    render('c-atkinson', diffuse(v,h,[[1,0,1],[2,0,1],[-1,1,1],[0,1,1],[1,1,1],[0,2,1]],8), h);
+    render('c-bayer', bayer(v,h), h);
+  }
+
+  function loadFile(f){
+    if (!f || !f.type.startsWith('image/')) return;
+    const img = new Image(); img.onload = ()=>{ src = img; update(); }; img.src = URL.createObjectURL(f);
+  }
+
+  const drop = document.getElementById('drop');
+  ['dragenter','dragover'].forEach(t=>document.addEventListener(t,e=>{ e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave','drop'].forEach(t=>document.addEventListener(t,e=>{ e.preventDefault(); drop.classList.remove('over'); }));
+  document.addEventListener('drop', e=>{ if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
+  document.addEventListener('paste', e=>{ for (const it of e.clipboardData.items){ if (it.type.startsWith('image/')) { loadFile(it.getAsFile()); break; } } });
+  document.getElementById('file').addEventListener('change', e=>loadFile(e.target.files[0]));
+  ['bri','con','gam'].forEach(k=>document.getElementById(k).addEventListener('input', update));
+  document.getElementById('zoom').addEventListener('change', e=>document.body.classList.toggle('zoom', e.target.checked));
+
+  src = sample(); update();
+})();
+</script>

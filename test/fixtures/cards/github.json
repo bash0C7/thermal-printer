@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "kind": "github",
+  "url": "https://github.com/bash0C7/thermal-printer/issues/12",
+  "header": {
+    "lines": ["bash0C7/thermal-printer"],
+    "emphasis": "#12",
+    "sublines": ["open ・ 更新 2日前"]
+  },
+  "title": "長い出力のときに GUI で警告を出す",
+  "sections": [
+    { "label": null, "text": "印字長が閾値を超えたら、印刷前に確認を出す。閾値は設定で変更可。" },
+    { "label": "最新コメント", "text": "閾値は 50cm でもよいかも。ロール 1 本の長さも考慮。" }
+  ]
+}

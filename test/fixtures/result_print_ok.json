@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "mode": "print",
+  "ok": true,
+  "error": null,
+  "exit_code": 0,
+  "hint": null,
+  "warnings": [],
+  "status": {"battery": 83, "paper": "ok", "cover": "closed", "temperature": "normal",
+             "firmware": "3.0.7", "serial": "Q114E48T2580915", "auto_off": 12},
+  "job": {"rows": 2400, "blocks": 10, "bytes": 115259, "chunks": 901,
+          "chunk_size": 128, "interval_ms": 20, "density": 4},
+  "notify": {"acks": 901, "max_write": 182, "events": ["1a0689", "1a0f0c"]},
+  "completion": {"state": "notified", "after_send_ms": 2310},
+  "elapsed_ms": 21034
+}

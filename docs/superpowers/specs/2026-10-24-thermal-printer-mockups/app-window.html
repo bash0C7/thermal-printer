@@ -1,0 +1,148 @@
+<style>
+  .wins { display:flex; flex-direction:column; gap:30px; }
+  .win-card { cursor:pointer; border:3px solid transparent; border-radius:12px; padding:10px; }
+  .win-card.selected { border-color:#3b82f6; }
+  .win-card h3 { margin:0 0 4px; }
+  .win-card .note { font-size:13px; opacity:.75; margin:0 0 10px; }
+  .win { background:#ececec; color:#222; border-radius:10px; box-shadow:0 6px 24px rgba(0,0,0,.3); overflow:hidden; font-family:-apple-system,"Hiragino Sans",sans-serif; font-size:13px; max-width:980px; }
+  .win * { color:#222; }
+  .titlebar { display:flex; align-items:center; gap:8px; padding:8px 12px; background:#e2e2e2; border-bottom:1px solid #c8c8c8; }
+  .dots span { display:inline-block; width:11px; height:11px; border-radius:50%; margin-right:5px; }
+  .tb-title { font-weight:600; flex:1; text-align:center; }
+  .pill { background:#fff; border:1px solid #c8c8c8; border-radius:12px; padding:2px 10px; font-size:12px; }
+  .body { display:flex; min-height:420px; }
+  .pane { padding:12px; }
+  .side { width:220px; background:#e6e6e6; border-right:1px solid #ccc; }
+  .list { width:280px; border-right:1px solid #ccc; background:#f6f6f6; }
+  .preview { flex:1; background:#d4d4d4; display:flex; justify-content:center; padding:16px; overflow:hidden; }
+  .strip { width:200px; background:#fff; box-shadow:0 1px 6px rgba(0,0,0,.25); padding:10px 9px; font-size:10px; line-height:1.4; align-self:flex-start; }
+  .strip * { color:#000; }
+  .strip .h1 { font-size:15px; font-weight:900; }
+  .strip .h2 { font-size:12px; font-weight:900; border-bottom:2px solid #000; margin-top:6px; }
+  .strip .cut { border-top:1.5px dashed #000; margin:8px -9px; }
+  .strip .ph { background:repeating-linear-gradient(45deg,#000 0 1px,#fff 1px 3px); height:110px; margin-top:4px; }
+  .strip .qr { width:44px; height:44px; background:repeating-linear-gradient(90deg,#000 0 3px,#fff 3px 6px),#fff; float:right; outline:3px solid #000; outline-offset:-3px; }
+  .blk { background:#fff; border:1px solid #ccc; border-radius:7px; padding:7px 9px; margin-bottom:7px; display:flex; gap:8px; align-items:center; }
+  .blk.sel { border-color:#3b82f6; box-shadow:0 0 0 2px rgba(59,130,246,.3); }
+  .blk .k { font-size:11px; border-radius:4px; padding:1px 5px; background:#eee; }
+  .grip { opacity:.4; }
+  .dropz { border:2px dashed #aaa; border-radius:8px; padding:12px; text-align:center; color:#666 !important; margin-bottom:10px; }
+  .insp { border-top:1px solid #ccc; margin-top:10px; padding-top:10px; }
+  .insp label { display:flex; justify-content:space-between; margin:5px 0; }
+  .foot { display:flex; align-items:center; gap:12px; padding:9px 12px; background:#e2e2e2; border-top:1px solid #c8c8c8; }
+  .len { font-weight:700; }
+  .warn { background:#fff3cd; border:1px solid #e0b100; border-radius:6px; padding:3px 8px; }
+  .btn { background:#2f6fde; color:#fff !important; border-radius:6px; padding:5px 16px; font-weight:600; }
+  .btn2 { background:#fff; border:1px solid #bbb; border-radius:6px; padding:4px 12px; }
+  .sec { font-size:11px; font-weight:700; opacity:.6; margin:8px 0 4px; text-transform:uppercase; }
+  .src { display:flex; gap:6px; align-items:flex-start; margin:4px 0; }
+  .src input { margin-top:2px; }
+  .float-insp { position:absolute; background:#fff; border:1px solid #bbb; border-radius:8px; box-shadow:0 4px 14px rgba(0,0,0,.2); padding:8px 10px; width:190px; font-size:12px; }
+</style>
+
+<h2>アプリの画面、どの形がしっくりくる？</h2>
+<p class="subtitle">どの案も「ドロップ / ⌘V / URL 貼り付けで部品（ブロック）が増える → 右の実寸プレビューで確認 → 長さを見て印刷」は共通。違いは画面の分け方。プレビュー内の ✂ はカード間の切り取り線。</p>
+
+<div class="wins">
+
+<div class="win-card" data-choice="a" onclick="document.querySelectorAll('.win-card').forEach(e=>e.classList.remove('selected'));toggleSelect(this)">
+  <h3>A. 2 ペイン（部品リスト＋プレビュー）</h3>
+  <p class="note">左に部品の並び（ドラッグで並べ替え）、選んだ部品の設定は左下。右は実寸プレビュー。いちばん普通の道具の形。</p>
+  <div class="win">
+    <div class="titlebar"><span class="dots"><span style="background:#ff5f57"></span><span style="background:#febc2e"></span><span style="background:#28c840"></span></span><span class="tb-title">Thermal Printer</span><span class="pill">● T02 接続中 ・ 電池 80%</span></div>
+    <div class="body">
+      <div class="pane list">
+        <div class="dropz">ここにドロップ / ⌘V で追加</div>
+        <div class="blk"><span class="grip">⋮⋮</span><span class="k">MD</span> 10/24 打ち合わせメモ.md</div>
+        <div class="blk sel"><span class="grip">⋮⋮</span><span class="k">写真</span> IMG_2041.HEIC</div>
+        <div class="blk"><span class="grip">⋮⋮</span><span class="k">GitHub</span> thermal-printer #12</div>
+        <div class="insp">
+          <b>写真の設定</b>
+          <label>明るさ <span>━━●━━</span></label>
+          <label>コントラスト <span>━━━●━</span></label>
+          <label>ガンマ <span>━━●━━</span></label>
+          <label>向き <span>縦 / 横に回転</span></label>
+        </div>
+      </div>
+      <div class="preview">
+        <div class="strip">
+          <div class="h1">10/24 打ち合わせメモ</div>
+          <div class="h2">決まったこと</div>
+          <div>・<b>リリースは 11/15</b><br>・検証環境は <i>来週月曜</i> から</div>
+          <div class="cut"></div>
+          <div class="ph"></div>
+          <div class="cut"></div>
+          <div class="qr"></div><div><b>thermal-printer</b><br><b style="font-size:14px">#12</b></div>
+          <div style="clear:both;font-weight:900;font-size:12px;margin-top:4px">長い出力のときに GUI で警告</div>
+        </div>
+      </div>
+    </div>
+    <div class="foot"><span class="len">長さ 31.5 cm</span><span class="warn">⚠ 30cm を超えています</span><span style="flex:1"></span><span class="btn2">濃度: 標準 ▾</span><span class="btn">印刷</span></div>
+  </div>
+</div>
+
+<div class="win-card" data-choice="b" onclick="document.querySelectorAll('.win-card').forEach(e=>e.classList.remove('selected'));toggleSelect(this)">
+  <h3>B. プレビュー 1 枚だけ（紙の上で直接いじる）</h3>
+  <p class="note">画面はほぼ紙そのもの。紙に直接ドロップ、紙の上の部品をつまんで並べ替え、クリックで小さな設定パネル。最小限で軽い。</p>
+  <div class="win">
+    <div class="titlebar"><span class="dots"><span style="background:#ff5f57"></span><span style="background:#febc2e"></span><span style="background:#28c840"></span></span><span class="tb-title">Thermal Printer</span><span class="pill">● T02 接続中 ・ 電池 80%</span></div>
+    <div class="body" style="position:relative">
+      <div class="preview" style="background:#d4d4d4">
+        <div class="strip" style="outline:2px dashed #3b82f6; outline-offset:6px">
+          <div class="h1">10/24 打ち合わせメモ</div>
+          <div class="h2">決まったこと</div>
+          <div>・<b>リリースは 11/15</b><br>・検証環境は <i>来週月曜</i> から</div>
+          <div class="cut"></div>
+          <div class="ph" style="outline:2px solid #3b82f6"></div>
+          <div class="cut"></div>
+          <div class="qr"></div><div><b>thermal-printer</b><br><b style="font-size:14px">#12</b></div>
+          <div style="clear:both;font-weight:900;font-size:12px;margin-top:4px">長い出力のときに GUI で警告</div>
+          <div style="text-align:center;color:#3b82f6 !important;margin-top:10px;font-size:11px">＋ ここにドロップ / ⌘V</div>
+        </div>
+        <div class="float-insp" style="left:62%;top:150px"><b>写真</b><br>明るさ ━━●━━<br>コントラスト ━━━●━<br>ガンマ ━━●━━<br><span style="opacity:.6">↑↓ で並べ替え ・ ⌫ で削除</span></div>
+      </div>
+    </div>
+    <div class="foot"><span class="len">長さ 31.5 cm</span><span class="warn">⚠ 30cm を超えています</span><span style="flex:1"></span><span class="btn2">濃度: 標準 ▾</span><span class="btn">印刷</span></div>
+  </div>
+</div>
+
+<div class="win-card" data-choice="c" onclick="document.querySelectorAll('.win-card').forEach(e=>e.classList.remove('selected'));toggleSelect(this)">
+  <h3>C. 3 ペイン（「今日のカード」入口つき）</h3>
+  <p class="note">A の左にもう 1 列。自分に assign された GitHub issue と今日期限のリマインダーが並んでいて、チェックすると部品に入る。朝の儀式向け。Slack はここには出ない（skill 経由で部品に入る）。</p>
+  <div class="win">
+    <div class="titlebar"><span class="dots"><span style="background:#ff5f57"></span><span style="background:#febc2e"></span><span style="background:#28c840"></span></span><span class="tb-title">Thermal Printer</span><span class="pill">● T02 接続中 ・ 電池 80%</span></div>
+    <div class="body">
+      <div class="pane side">
+        <div class="sec">GitHub（自分 assign・open）</div>
+        <div class="src"><input type="checkbox" checked> thermal-printer #12<br>長い出力で警告</div>
+        <div class="src"><input type="checkbox"> stackchan-picoruby #31<br>音声の遅延</div>
+        <div class="src"><input type="checkbox"> notetaked #8<br>同期エラー</div>
+        <div class="sec">リマインダー（今日まで）</div>
+        <div class="src"><input type="checkbox" checked> 紙ロール発注</div>
+        <div class="src"><input type="checkbox"> 経費精算</div>
+        <div style="margin-top:10px"><span class="btn2">↻ 更新</span></div>
+      </div>
+      <div class="pane list">
+        <div class="dropz">ここにドロップ / ⌘V で追加</div>
+        <div class="blk"><span class="grip">⋮⋮</span><span class="k">GitHub</span> thermal-printer #12</div>
+        <div class="blk"><span class="grip">⋮⋮</span><span class="k">リマインダー</span> 紙ロール発注</div>
+        <div class="blk"><span class="grip">⋮⋮</span><span class="k">Slack</span> #dev-printer 10/23</div>
+      </div>
+      <div class="preview">
+        <div class="strip">
+          <div class="qr"></div><div><b>thermal-printer</b><br><b style="font-size:14px">#12</b></div>
+          <div style="clear:both;font-weight:900;font-size:12px;margin-top:4px">長い出力のときに GUI で警告</div>
+          <div>印字長が閾値を超えたら確認を出す。</div>
+          <div class="cut"></div>
+          <div style="font-weight:900;font-size:12px">☐ 紙ロール発注</div><div>期限 今日 ・ 買い物リスト</div>
+          <div class="cut"></div>
+          <div class="qr"></div><div>myteam<br><b>#dev-printer</b><br>10/23 15:42</div>
+          <div style="clear:both;font-weight:900;font-size:12px;margin-top:4px">紙ロールの在庫確認</div>
+        </div>
+      </div>
+    </div>
+    <div class="foot"><span class="len">長さ 22.0 cm</span><span style="flex:1"></span><span class="btn2">濃度: 標準 ▾</span><span class="btn">印刷</span></div>
+  </div>
+</div>
+
+</div>

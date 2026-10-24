@@ -1,0 +1,7 @@
+# brainstorming の visual companion が書き出す作業ファイル（選んだモックアップは docs/ に写してある）
+.superpowers/
+.DS_Store
+vendor/
+build/
+app/ThermalPrinter.xcodeproj
+.build

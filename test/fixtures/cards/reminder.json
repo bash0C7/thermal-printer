@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "kind": "reminder",
+  "url": null,
+  "header": {
+    "lines": ["買い物"],
+    "emphasis": null,
+    "sublines": ["期限 今日 18:00"]
+  },
+  "title": "☐ 牛乳を買う",
+  "sections": [
+    { "label": null, "text": "低脂肪ではなく普通のもの。帰りにスーパーで。卵が安ければ一緒に。" }
+  ]
+}

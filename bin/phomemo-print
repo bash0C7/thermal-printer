@@ -1,0 +1,4 @@
+#!/bin/sh
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+VM="${PHOMEMO_PICORUBY:-$ROOT/vendor/R2P2-darwin/build/host/bin/picoruby}"
+exec "$VM" "$ROOT/cli/print.rb" "$ROOT" "$@"
