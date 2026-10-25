@@ -7,8 +7,10 @@ struct TodayIssue: Identifiable, Equatable, Sendable {
     let repository: String
     let title: String
     let url: String
+    let isPullRequest: Bool
 
     var id: String { "github:\(url)" }
+    var label: String { "\(repository) \(isPullRequest ? "PR " : "")#\(number)" }
 }
 
 struct TodayReminder: Identifiable, Equatable, Sendable {
@@ -32,10 +34,12 @@ enum TodayLoadError: Error, LocalizedError {
 }
 
 enum TodayLoader {
-    static let ghArguments = [
-        "search", "issues", "--assignee", "@me", "--state", "open",
-        "--sort", "updated", "--limit", "50", "--json", "number,title,repository,url",
-    ]
+    static func ghArguments(searching noun: String) -> [String] {
+        [
+            "search", noun, "--assignee", "@me", "--state", "open",
+            "--sort", "updated", "--limit", "50", "--json", "number,title,repository,url",
+        ]
+    }
 
     private struct Row: Decodable {
         struct Repository: Decodable {
@@ -50,7 +54,15 @@ enum TodayLoader {
 
     static func issues(runner: any ProcessRunner, locator: GHLocator = GHLocator()) async throws -> [TodayIssue] {
         guard let gh = locator.locate() else { throw TodayLoadError.ghMissing }
-        let outcome = try await runner.run(executable: gh, arguments: ghArguments)
+        let issues = try await search("issues", isPullRequest: false, gh: gh, runner: runner)
+        let pulls = try await search("prs", isPullRequest: true, gh: gh, runner: runner)
+        return issues + pulls
+    }
+
+    private static func search(
+        _ noun: String, isPullRequest: Bool, gh: URL, runner: any ProcessRunner
+    ) async throws -> [TodayIssue] {
+        let outcome = try await runner.run(executable: gh, arguments: ghArguments(searching: noun))
         guard outcome.terminationStatus == 0 else {
             let line = outcome.output.split(whereSeparator: \.isNewline).first.map(String.init) ?? ""
             throw TodayLoadError.ghFailed(String(line.prefix(80)))
@@ -59,7 +71,9 @@ enum TodayLoader {
               let rows = try? JSONDecoder().decode([Row].self, from: Data(outcome.output.utf8))
         else { throw TodayLoadError.unreadable }
         return rows.map {
-            TodayIssue(number: $0.number, repository: $0.repository.nameWithOwner, title: $0.title, url: $0.url)
+            TodayIssue(
+                number: $0.number, repository: $0.repository.nameWithOwner, title: $0.title, url: $0.url,
+                isPullRequest: isPullRequest)
         }
     }
 

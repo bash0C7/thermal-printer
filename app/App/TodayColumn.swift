@@ -3,10 +3,19 @@ import ThermalPrinterCore
 
 struct TodayColumn: View {
     @Environment(AppModel.self) private var model
+    @State private var urlText = ""
 
     var body: some View {
         List {
-            Section("GitHub（自分 assign・open）") {
+            Section("GitHub（自分 assign・open の issue と PR）") {
+                TextField("GitHub の URL を直接指定", text: $urlText)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit {
+                        let text = urlText
+                        urlText = ""
+                        Task { await model.receive(PasteboardContent(text: text)) }
+                    }
+                    .accessibilityIdentifier("githubURLField")
                 if model.issuesLoading {
                     ProgressView().controlSize(.small)
                 }
@@ -16,7 +25,7 @@ struct TodayColumn: View {
                         set: { model.setIssue(issue, checked: $0) })
                     ) {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("\(issue.repository) #\(issue.number)").font(.caption.bold())
+                            Text(issue.label).font(.caption.bold())
                             Text(issue.title).lineLimit(2)
                         }
                     }
@@ -28,7 +37,7 @@ struct TodayColumn: View {
                         .accessibilityIdentifier("issuesMessage")
                 }
             }
-            Section("リマインダー（今日まで）") {
+            Section("リマインダー（今日以降）") {
                 if model.remindersLoading {
                     ProgressView().controlSize(.small)
                 }

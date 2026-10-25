@@ -3,7 +3,7 @@ import Foundation
 
 public protocol RemindersStore: Sendable {
     func requestAccess() async throws -> Bool
-    func incompleteReminders(dueBefore end: Date) async -> [ReminderItem]
+    func incompleteReminders(dueFrom start: Date) async -> [ReminderItem]
 }
 
 public struct RemindersSource: Sendable {
@@ -21,8 +21,8 @@ public struct RemindersSource: Sendable {
 
     public func todaysReminders(now: Date = Date()) async throws -> [ReminderItem] {
         guard try await store.requestAccess() else { throw Failure.accessDenied }
-        let end = TodayFilter.endOfToday(now: now, calendar: calendar)
-        let fetched = await store.incompleteReminders(dueBefore: end)
+        let start = calendar.startOfDay(for: now)
+        let fetched = await store.incompleteReminders(dueFrom: start)
         return TodayFilter.reminders(fetched, now: now, calendar: calendar)
     }
 
@@ -40,8 +40,8 @@ public final class EventKitRemindersStore: RemindersStore, @unchecked Sendable {
         try await store.requestFullAccessToReminders()
     }
 
-    public func incompleteReminders(dueBefore end: Date) async -> [ReminderItem] {
-        let predicate = store.predicateForIncompleteReminders(withDueDateStarting: nil, ending: end, calendars: nil)
+    public func incompleteReminders(dueFrom start: Date) async -> [ReminderItem] {
+        let predicate = store.predicateForIncompleteReminders(withDueDateStarting: start, ending: nil, calendars: nil)
         return await withCheckedContinuation { continuation in
             _ = store.fetchReminders(matching: predicate) { reminders in
                 continuation.resume(returning: (reminders ?? []).map(EventKitRemindersStore.item))

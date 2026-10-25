@@ -18,15 +18,10 @@ public struct ReminderItem: Equatable, Sendable {
 
 public enum TodayFilter {
     public static func reminders(_ items: [ReminderItem], now: Date, calendar: Calendar = .current) -> [ReminderItem] {
-        let end = endOfToday(now: now, calendar: calendar)
-        return items
-            .filter { $0.due.map { $0 < end } ?? false }
-            .sorted { ($0.due ?? .distantFuture) < ($1.due ?? .distantFuture) }
-    }
-
-    public static func endOfToday(now: Date, calendar: Calendar = .current) -> Date {
         let start = calendar.startOfDay(for: now)
-        return calendar.date(byAdding: .day, value: 1, to: start) ?? start.addingTimeInterval(24 * 60 * 60)
+        return items
+            .filter { $0.due.map { $0 >= start } ?? false }
+            .sorted { ($0.due ?? .distantFuture) < ($1.due ?? .distantFuture) }
     }
 }
 

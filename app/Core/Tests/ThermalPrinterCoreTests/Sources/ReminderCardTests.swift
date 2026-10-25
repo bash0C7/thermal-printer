@@ -27,14 +27,14 @@ private struct FakeStore: RemindersStore {
     let recorder: Recorder
 
     final class Recorder: @unchecked Sendable {
-        var fetchedEnd: Date?
+        var fetchedStart: Date?
         var fetchCount = 0
     }
 
     func requestAccess() async throws -> Bool { granted }
 
-    func incompleteReminders(dueBefore end: Date) async -> [ReminderItem] {
-        recorder.fetchedEnd = end
+    func incompleteReminders(dueFrom start: Date) async -> [ReminderItem] {
+        recorder.fetchedStart = start
         recorder.fetchCount += 1
         return items
     }
@@ -104,7 +104,7 @@ private struct FakeStore: RemindersStore {
         #expect(card.header.sublines == ["期限 今日 00:30"])
     }
 
-    @Test func overdueAndTodayAreIncludedButTomorrowAndNoDueAreNot() {
+    @Test func todayAndLaterAreIncludedButOverdueAndNoDueAreNot() {
         let items = [
             item(due: date(2026, 10, 23, 8, 0)),
             item(due: date(2026, 10, 24, 18, 0)),
@@ -114,26 +114,11 @@ private struct FakeStore: RemindersStore {
         #expect(TodayFilter.reminders(items, now: morning, calendar: tokyo).count == 2)
     }
 
-    @Test func midnightEndingTodayBelongsToTomorrow() {
-        let items = [item(due: date(2026, 10, 25, 0, 0)), item(due: date(2026, 10, 24, 23, 59))]
-        let kept = TodayFilter.reminders(items, now: morning, calendar: tokyo)
-        #expect(kept.map(\.due) == [date(2026, 10, 24, 23, 59)])
-    }
-
-    @Test func filteredRemindersAreOrderedByDueWithOverdueFirst() {
-        let items = [
-            item("夕方", due: date(2026, 10, 24, 18, 0)),
-            item("先週", due: date(2026, 10, 17, 9, 0)),
-            item("昨日", due: date(2026, 10, 23, 9, 0)),
-        ]
-        #expect(TodayFilter.reminders(items, now: morning, calendar: tokyo).map(\.title) == ["先週", "昨日", "夕方"])
-    }
-
-    @Test func sourceAsksTheStoreForEverythingDueBeforeTomorrow() async throws {
+    @Test func sourceAsksTheStoreForEverythingDueFromTheStartOfToday() async throws {
         let recorder = FakeStore.Recorder()
         let source = RemindersSource(store: FakeStore(granted: true, items: [], recorder: recorder), calendar: tokyo)
         _ = try await source.todaysReminders(now: morning)
-        #expect(recorder.fetchedEnd == date(2026, 10, 25, 0, 0))
+        #expect(recorder.fetchedStart == date(2026, 10, 24, 0, 0))
     }
 
     @Test func sourceFiltersAgainAndOrdersWhatTheStoreReturns() async throws {
@@ -144,14 +129,14 @@ private struct FakeStore: RemindersStore {
             item("昨日", due: date(2026, 10, 23, 9, 0)),
         ]
         let source = RemindersSource(store: FakeStore(granted: true, items: items, recorder: .init()), calendar: tokyo)
-        #expect(try await source.todaysReminders(now: morning).map(\.title) == ["昨日", "夕方"])
+        #expect(try await source.todaysReminders(now: morning).map(\.title) == ["夕方", "明日の0時"])
     }
 
     @Test func sourceTurnsEachReminderIntoOneCard() async throws {
-        let items = [item("夕方", due: date(2026, 10, 24, 18, 0)), item("昨日", due: date(2026, 10, 23, 9, 0))]
+        let items = [item("明日", due: date(2026, 10, 25, 9, 0)), item("夕方", due: date(2026, 10, 24, 18, 0))]
         let source = RemindersSource(store: FakeStore(granted: true, items: items, recorder: .init()), calendar: tokyo)
         let cards = try await source.todaysCards(now: morning)
-        #expect(cards.map(\.title) == ["☐ 昨日", "☐ 夕方"])
+        #expect(cards.map(\.title) == ["☐ 夕方", "☐ 明日"])
         #expect(cards.allSatisfy { $0.kind == .reminder && $0.url == nil })
     }
 

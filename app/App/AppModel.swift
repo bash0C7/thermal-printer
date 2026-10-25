@@ -219,7 +219,7 @@ final class AppModel {
         defer { remindersLoading = false }
         do {
             reminders = try await TodayLoader.reminders()
-            remindersMessage = reminders.isEmpty ? "今日までのリマインダーはありません" : nil
+            remindersMessage = reminders.isEmpty ? "今日以降のリマインダーはありません" : nil
         } catch RemindersSource.Failure.accessDenied {
             reminders = []
             remindersMessage = "リマインダーへのアクセスが許可されていません。システム設定の「プライバシーとセキュリティ」で許可してください"
@@ -290,7 +290,7 @@ final class AppModel {
         defer { issuesLoading = false }
         do {
             issues = try await TodayLoader.issues(runner: runner)
-            issuesMessage = issues.isEmpty ? "自分に assign された open の issue はありません" : nil
+            issuesMessage = issues.isEmpty ? "自分に assign された open の issue と PR はありません" : nil
         } catch {
             issues = []
             issuesMessage = error.localizedDescription
