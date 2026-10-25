@@ -63,7 +63,7 @@ namespace :app do
   end
 
   namespace :uitest do
-    desc "Fetch the card of GITHUB_URL through the real gh, preview it with the real CLI dry-run and send one job to a fake CLI (GITHUB_URL=url GITHUB_EXPECT_ROW=text; never touches the printer)"
+    desc "Fetch the card of GITHUB_URL through the real gh, preview it with the real CLI dry-run and hand one job to a fake CLI (GITHUB_URL=url GITHUB_EXPECT_ROW=text; never touches the printer)"
     task :github => :gen do
       url = ENV["GITHUB_URL"].to_s
       expect = ENV["GITHUB_EXPECT_ROW"].to_s
