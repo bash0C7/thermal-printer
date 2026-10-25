@@ -48,7 +48,7 @@
   - URL
 - markdown を「白黒の感熱プリンターにフィットするように」レンダリングする。対象は見出し、太字、斜体、リストなど。
 - GitHub issue、Slack の発言、リマインダー、任意の URL を「カード」1 枚にして印刷する。
-- 朝のための「今日のカード」入口を持つ。自分に assign された open issue と、今日までのリマインダーが並ぶ。
+- 朝のための「今日のカード」入口を持つ。自分に assign された open の issue と PR、今日以降のリマインダーが並ぶ。URL の直接指定もできる。
 - 長すぎる出力のときに GUI で注意を出す。
 - Claude Code から、repo 内の skill で Slack のカードを再現性高く作れる。
 - 【ユーザー決定】gem はマイコン（Pico 2 W / ESP32）を見据えた構造にする（`ports/` 分離、行ブロック単位の API。§5.1）。
@@ -89,8 +89,8 @@
         │ ドロップ・⌘V・入力欄
         ▼
  ┌──────────── Mac アプリ（SwiftUI） ────────────┐
- │ 今日のカード: gh（assign された open issue）    │ ◀── URL スキーム + カード JSON ──┐
- │              EventKit（今日までのリマインダー） │                                   │
+ │ 今日のカード: gh（assign された open issue と PR） │ ◀── URL スキーム + カード JSON ──┐
+ │              EventKit（今日以降のリマインダー） │                                   │
  │ 部品リスト → レンダラ → 384 dot 幅 1bit ラスタ  │      Claude Code skill（repo 内）│
  │ 実寸プレビュー / 長さ表示 / 警告               │      Slack 連携で本文・channel 名・│
  └───────────────┬───────────────────────────────┘      投稿者・日時 → 要約 ───────────┘
@@ -325,8 +325,8 @@ picoruby-phomemo-thermal-printer/        # 独立した repo（bash0C7/picoruby-
 【ユーザー決定】**C: 3 ペイン（「今日のカード」入口つき）**。モックアップは `2026-10-24-thermal-printer-mockups/app-window.html` の C。
 
 - **左「今日のカード」**
-  - GitHub: 自分に assign された open issue（`gh search issues --assignee @me --state open` 相当。`@me` はその時の `gh` のアクティブアカウント）。
-  - リマインダー: 今日まで（期限切れを含む）の未完了。
+  - GitHub: 自分に assign された open の issue と PR（`gh search issues` と `gh search prs` を `--assignee @me --state open` で実行。`@me` はその時の `gh` のアクティブアカウント）。URL 入力欄に貼ると、その URL のカードを作る。
+  - リマインダー: 期限が今日の0時以降の未完了（期限切れと期限なしは含まない）。
   - チェックすると、中央の部品リストに入る。更新ボタンがある。Slack はここに出ない（skill 経由で部品に入る）。
 - **中央「部品リスト」**
   - ドロップ / ⌘V で追加する。ドラッグで並べ替え、削除する。
