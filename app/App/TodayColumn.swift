@@ -7,15 +7,15 @@ struct TodayColumn: View {
 
     var body: some View {
         List {
-            Section("GitHub（自分 assign・open の issue と PR）") {
-                TextField("GitHub の URL を直接指定", text: $urlText)
+            Section("URL と GitHub（自分 assign・open の issue と PR）") {
+                TextField("URL を直接指定（GitHub 以外も取り込み・要約）", text: $urlText)
                     .textFieldStyle(.roundedBorder)
                     .onSubmit {
                         let text = urlText
                         urlText = ""
                         Task { await model.receive(PasteboardContent(text: text)) }
                     }
-                    .accessibilityIdentifier("githubURLField")
+                    .accessibilityIdentifier("urlField")
                 if model.issuesLoading {
                     ProgressView().controlSize(.small)
                 }

@@ -33,6 +33,23 @@ extension XCUIApplication {
     func item(_ identifier: String) -> XCUIElement {
         descendants(matching: .any)[identifier].firstMatch
     }
+
+    @MainActor
+    func pasteURL() {
+        let field = textFields["urlField"]
+        XCTAssertTrue(field.waitForExistence(timeout: 10), "urlField is missing")
+        field.click()
+        typeKey("v", modifierFlags: .command)
+        typeKey(.return, modifierFlags: [])
+    }
+
+    @MainActor
+    func pasteIntoDraft() {
+        let editor = textViews["draftEditor"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 10), "draftEditor is missing")
+        editor.click()
+        typeKey("v", modifierFlags: .command)
+    }
 }
 
 extension XCUIElement {
@@ -83,9 +100,12 @@ struct FakeSession {
 
     @MainActor
     func paste() {
-        let button = app.buttons["pasteButton"]
-        XCTAssertTrue(button.waitForExistence(timeout: 10), "pasteButton is missing")
-        button.click()
+        app.pasteIntoDraft()
+    }
+
+    @MainActor
+    func pasteURL() {
+        app.pasteURL()
     }
 
     @MainActor

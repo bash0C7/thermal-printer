@@ -13,6 +13,7 @@ extension Part {
             case .slack: "Slack"
             case .url: "URL"
             case .reminder: "リマインダー"
+            case .memo: "メモ"
             }
         }
     }
@@ -89,25 +90,32 @@ struct PartsColumn: View {
     }
 
     private var dropZone: some View {
-        VStack(spacing: 6) {
-            Text("ここにドロップ / ⌘V で追加")
-                .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 6) {
+            DraftEditor()
+                .frame(height: 150)
             HStack {
-                Button("クリップボードから追加") { model.pasteFromPasteboard() }
-                    .accessibilityIdentifier("pasteButton")
+                Button {
+                    model.digestDraft()
+                } label: {
+                    Label("見出しと要約にして、原文をQRに圧縮", systemImage: "wand.and.stars")
+                }
+                .disabled(!model.canDigestDraft)
+                .accessibilityIdentifier("digestButton")
+                Spacer(minLength: 0)
+                Button("クリア") { model.clearDraft() }
+                    .disabled(model.draftText.isEmpty)
+                    .accessibilityIdentifier("clearDraftButton")
+            }
+            HStack {
+                Text("Markdownを書けます。画像は貼り付けると [Image #1] と出ます。ファイルはドロップで追加します。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 if model.pendingCards > 0 {
                     ProgressView().controlSize(.small)
-                    Text("カードを取得中").font(.caption).foregroundStyle(.secondary)
                 }
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(10)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [5]))
-                .foregroundStyle(.tertiary)
-        )
         .padding(8)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("dropZone")

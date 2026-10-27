@@ -50,7 +50,7 @@ final class DeviceScenarioTests: XCTestCase {
         let app = XCUIApplication(url: URL(fileURLWithPath: appPath))
         app.launch()
 
-        pasteAndPreview(app, previewTimeout: 180)
+        pasteAndPreview(app, intoURLField: true, previewTimeout: 180)
 
         let row = app.item("partRow-0").containedText
         report.append("part row: \(row)")
@@ -70,7 +70,7 @@ final class DeviceScenarioTests: XCTestCase {
     }
 
     @MainActor
-    private func pasteAndPreview(_ app: XCUIApplication, previewTimeout: TimeInterval = 20) {
+    private func pasteAndPreview(_ app: XCUIApplication, intoURLField: Bool = false, previewTimeout: TimeInterval = 20) {
         XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 15), "no window")
         let refresh = app.buttons["refreshStatusButton"]
         XCTAssertTrue(refresh.waitUntilEnabled(timeout: 90), "the startup status check never finished")
@@ -79,9 +79,7 @@ final class DeviceScenarioTests: XCTestCase {
             report.append("status detail at launch: \(app.item("statusDetailLabel").text)")
         }
 
-        let paste = app.buttons["pasteButton"]
-        XCTAssertTrue(paste.waitForExistence(timeout: 10), "pasteButton is missing")
-        paste.click()
+        if intoURLField { app.pasteURL() } else { app.pasteIntoDraft() }
 
         let preview = app.item("previewImage")
         XCTAssertTrue(preview.waitForExistence(timeout: previewTimeout), "no preview appeared: \(app.item("messageLabel").text)")

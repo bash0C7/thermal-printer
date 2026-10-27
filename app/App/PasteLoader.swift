@@ -41,20 +41,6 @@ enum PasteLoader {
         return content
     }
 
-    @MainActor
-    static func pasteboardContent(_ pasteboard: NSPasteboard = .general) -> PasteboardContent {
-        let files = (pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true])
-            as? [URL]) ?? []
-        var content = PasteboardContent(fileURLs: files)
-        if files.isEmpty {
-            if let type = [NSPasteboard.PasteboardType.png, .tiff].first(where: { pasteboard.data(forType: $0) != nil }) {
-                content.imageData = pasteboard.data(forType: type)
-            }
-            content.text = pasteboard.string(forType: .string)
-        }
-        return content
-    }
-
     private static func imageType(of provider: NSItemProvider) -> UTType? {
         provider.registeredTypeIdentifiers.compactMap(UTType.init).first { $0.conforms(to: .image) }
     }

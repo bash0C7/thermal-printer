@@ -6,11 +6,10 @@ final class PasteAndPrintTests: XCTestCase {
     }
 
     @MainActor
-    func testPastingTextAddsAPartAndShowsAPreview() throws {
+    func testPastingTextIntoTheTextBoxShowsAPreview() throws {
         putTextOnPasteboard("# 見出し\n\n本文です。")
         let session = try FakeSession.launch()
         session.paste()
-        XCTAssertTrue(session.app.item("partRow-0").waitForExistence(timeout: 10), "no part row appeared")
         let preview = session.app.item("previewImage")
         XCTAssertTrue(preview.waitForExistence(timeout: 10), "no preview appeared")
         XCTAssertGreaterThan(preview.frame.height, 0)
@@ -21,7 +20,7 @@ final class PasteAndPrintTests: XCTestCase {
     func testPastingOneURLMakesACardPart() throws {
         putTextOnPasteboard("https://example.com/a/page")
         let session = try FakeSession.launch()
-        session.paste()
+        session.pasteURL()
         XCTAssertTrue(session.app.item("partRow-0").waitForExistence(timeout: 20), "no part row appeared")
         XCTAssertTrue(session.app.staticTexts["URL"].waitForExistence(timeout: 5), "the part is not a URL card")
     }
