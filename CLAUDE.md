@@ -47,6 +47,7 @@ mise exec ruby@4.0.5 -- rake vm:build          # 製品 VM (build_config/darwin-
 mise exec ruby@4.0.5 -- rake test:e2e          # カードのプレビュー PNG を claude -p が判定する。トークンを使う
 mise exec ruby@4.0.5 -- rake app:uitest        # 偽の CLI でアプリを操作する UI テスト。画面とクリップボードを使う
 GITHUB_URL=<issue の URL> GITHUB_EXPECT_ROW=<カード行の文字> mise exec ruby@4.0.5 -- rake app:uitest:github   # 実際の gh で取得したカードを、実 CLI の --dry-run でプレビューする。印字しない
+mise exec ruby@4.0.5 -- rake ios:all           # iPhone アプリ（ios/）を Simulator 向けにビルドして起動する。libmruby は ios:lib（実機向けは ios:device:lib）。実機は ios:device:all
 ```
 
 - `test:integration`は製品VMを要する。VMがなければ中断して`rake vm:build`を促す。
