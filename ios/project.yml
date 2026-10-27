@@ -1,0 +1,72 @@
+name: ThermalPrinterPhone
+options:
+  bundleIdPrefix: com.bash0c7
+  deploymentTarget:
+    iOS: "26.4"
+packages:
+  PicoBLEDarwin:
+    path: ${R2P2_DARWIN}/vendor/picoruby/mrbgems/picoruby-ble/ports/darwin/ext
+  ThermalPrinterCore:
+    path: ../app/Core
+targets:
+  ThermalPrinterPhone:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+      - path: app.rb
+        buildPhase: resources
+      - path: ../cli/phomemo_cli.rb
+        buildPhase: resources
+      - path: ${R2P2_DARWIN}/bridge
+        includes:
+          - "picoruby_bridge.c"
+          - "picoruby_bridge.h"
+          - "task_hal_ios.c"
+    dependencies:
+      - package: PicoBLEDarwin
+        embed: true
+      - package: ThermalPrinterCore
+        product: ThermalPrinterCore
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        SWIFT_OBJC_BRIDGING_HEADER: Sources/Bridging-Header.h
+        GCC_PREPROCESSOR_DEFINITIONS:
+          - "$(inherited)"
+          - "PICORB_ALLOC_ESTALLOC"
+          - "PICORB_ALLOC_ALIGN=8"
+          - "MRB_NO_BOXING"
+          - "MRB_INT64"
+          - "MRB_UTF8_STRING"
+          - "PICORB_PLATFORM_POSIX"
+          - "PICORB_PLATFORM_DARWIN"
+          - "MRB_TICK_UNIT=4"
+          - "MRB_TIMESLICE_TICK_COUNT=3"
+          - "MRB_USE_TASK_SCHEDULER=1"
+          - "MRB_USE_VM_SWITCH_DISPATCH=1"
+          - "MRB_BASELINE_PROFILE=1"
+        HEADER_SEARCH_PATHS:
+          - "${R2P2_DARWIN}/vendor/picoruby/include"
+          - "${R2P2_DARWIN}/vendor/picoruby/mrbgems/mruby-compiler/include"
+          - "${R2P2_DARWIN}/vendor/picoruby/mrbgems/mruby-compiler/lib/prism/include"
+          - "${R2P2_DARWIN}/vendor/picoruby/mrbgems/picoruby-mruby/lib/mruby/include"
+          - "${R2P2_DARWIN}/vendor/picoruby/mrbgems/picoruby-mruby/include"
+          - "${R2P2_DARWIN}/build/ios-thermal-printer-sim/include"
+          - "${R2P2_DARWIN}/build/ios-thermal-printer-device/include"
+          - "${R2P2_DARWIN}/vendor/picoruby/mrbgems/picoruby-mruby/lib/mruby/mrbgems/mruby-task/include"
+          - "${R2P2_DARWIN}/bridge"
+        LIBRARY_SEARCH_PATHS:
+          - "$(SRCROOT)/Vendor/lib"
+        OTHER_LDFLAGS:
+          - "-lmruby"
+          - "-framework"
+          - "Security"
+        INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
+        GENERATE_INFOPLIST_FILE: "YES"
+        INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription: "Phomemo T02 に Bluetooth で接続して印刷します。"
+        INFOPLIST_KEY_NSRemindersFullAccessUsageDescription: "今日以降のリマインダーを読み取って印刷します。"
+        TARGETED_DEVICE_FAMILY: "1"
+        PRODUCT_BUNDLE_IDENTIFIER: com.bash0c7.thermalprinter.phone
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: SM5792D355
