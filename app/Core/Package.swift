@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "ThermalPrinterCore",
-    platforms: [.macOS(.v27)],
+    platforms: [.macOS(.v27), .iOS("26.4")],
     products: [
         .library(name: "ThermalPrinterCore", targets: ["ThermalPrinterCore"]),
         .executable(name: "thermal-pbm", targets: ["thermal-pbm"]),

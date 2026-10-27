@@ -25,6 +25,7 @@ public struct SystemProcessRunner: ProcessRunner {
         self.outputLimit = outputLimit
     }
 
+#if os(macOS)
     public func run(executable: URL, arguments: [String]) async throws -> ProcessOutcome {
         let log = FileManager.default.temporaryDirectory
             .appending(path: "thermal-printer-\(UUID().uuidString).log")
@@ -62,4 +63,9 @@ public struct SystemProcessRunner: ProcessRunner {
             output: String(decoding: data.suffix(outputLimit), as: UTF8.self),
             truncated: data.count > outputLimit)
     }
+#else
+    public func run(executable: URL, arguments: [String]) async throws -> ProcessOutcome {
+        throw CocoaError(.featureUnsupported)
+    }
+#endif
 }
