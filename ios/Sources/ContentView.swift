@@ -31,9 +31,8 @@ struct ContentView: View {
     }
 
     private var draftSection: some View {
-        @Bindable var model = model
-        return Section("テキスト") {
-            TextEditor(text: Binding(get: { model.draftText }, set: { model.edit($0) }))
+        Section("テキスト") {
+            TextEditor(text: Binding(get: { model.draft.text }, set: { model.edit($0) }))
                 .font(.system(.body, design: .monospaced))
                 .frame(minHeight: 140)
                 .accessibilityIdentifier("draftEditor")
@@ -43,7 +42,7 @@ struct ContentView: View {
                 Button { importingFile = true } label: { Image(systemName: "doc") }
                 Spacer()
                 Button("クリア", role: .destructive) { model.clearDraft() }
-                    .disabled(model.draftText.isEmpty)
+                    .disabled(model.draft.text.isEmpty)
             }
             .buttonStyle(.bordered)
             Button {
@@ -65,9 +64,9 @@ struct ContentView: View {
             if let message = model.remindersMessage {
                 Text(message).foregroundStyle(.secondary)
             }
-            ForEach(model.reminders, id: \.title) { item in
+            ForEach(model.reminders, id: \.key) { item in
                 Toggle(isOn: Binding(
-                    get: { model.isChecked(PhoneModel.key(item)) },
+                    get: { model.isChecked(item.key) },
                     set: { model.setReminder(item, checked: $0) })
                 ) {
                     VStack(alignment: .leading) {

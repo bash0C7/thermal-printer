@@ -49,8 +49,8 @@ final class AppModel {
     private(set) var pendingKeys: Set<String> = []
     private(set) var pendingCards = 0
 
-    private(set) var draftText = ""
-    private(set) var draftDigest: Card?
+    private(set) var draft = DraftDocument(
+        directory: FileManager.default.temporaryDirectory.appending(path: "thermal-printer-draft-\(UUID().uuidString)"))
     private(set) var isDigesting = false
 
     private(set) var status: PrinterStatusSnapshot?
@@ -68,11 +68,7 @@ final class AppModel {
     @ObservationIgnored private let summarizer = SummarizerSelector().summarizer
     @ObservationIgnored private lazy var registry = URLHandlerRegistry.standard(
         runner: runner, summarizer: summarizer)
-    @ObservationIgnored private var draftImages: [Int: Data] = [:]
-    @ObservationIgnored private var draftImageURLs: [Int: URL] = [:]
     @ObservationIgnored private var draftRecompose: Task<Void, Never>?
-    @ObservationIgnored private let draftDirectory = FileManager.default.temporaryDirectory
-        .appending(path: "thermal-printer-draft-\(UUID().uuidString)")
 
     static let draftDebounce = Duration.milliseconds(350)
 
@@ -179,19 +175,12 @@ final class AppModel {
         for photo in photos { add(.image(photo.data)) }
     }
 
-    var canDigestDraft: Bool {
-        !isDigesting && !Draft.plainText(draftText).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
+    var draftText: String { draft.text }
 
-    var draftParts: [Part] {
-        guard !draftText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return [] }
-        if let draftDigest { return [.card(draftDigest)] }
-        return [.markdown(Draft.markdown(draftText, images: draftImageURLs))]
-    }
+    var canDigestDraft: Bool { !isDigesting && draft.canDigest }
 
     func draftEdited(_ text: String) {
-        draftText = text
-        draftDigest = nil
+        draft.edit(text)
         previews.invalidate()
         draftRecompose?.cancel()
         draftRecompose = Task {
@@ -205,41 +194,30 @@ final class AppModel {
     }
 
     func addDraftImage(_ data: Data) -> String? {
-        let number = (draftImages.keys.max() ?? 0) + 1
-        let url = draftDirectory.appending(path: "image-\(number).png")
         do {
-            try FileManager.default.createDirectory(at: draftDirectory, withIntermediateDirectories: true)
-            try data.write(to: url)
+            return try draft.addImage(data)
         } catch {
             banner = Banner(kind: .failure, text: "画像を保存できません（\(error.localizedDescription)）")
             return nil
         }
-        draftImages[number] = data
-        draftImageURLs[number] = url
-        return Draft.token(number)
     }
 
     func digestDraft() {
         guard canDigestDraft else { return }
-        let source = draftText
+        let source = draft.text
         isDigesting = true
         pendingCards += 1
         Task {
             let card = await MemoCard.make(Draft.plainText(source), summarizer: summarizer)
             pendingCards -= 1
             isDigesting = false
-            guard source == draftText else { return }
-            draftDigest = card
+            draft.apply(card, to: source)
             recompose()
         }
     }
 
     func clearDraft() {
-        draftText = ""
-        draftDigest = nil
-        draftImages = [:]
-        draftImageURLs = [:]
-        try? FileManager.default.removeItem(at: draftDirectory)
+        draft.clear()
         recompose()
     }
 
@@ -372,7 +350,7 @@ final class AppModel {
         composeGeneration += 1
         let generation = composeGeneration
         previews.invalidate()
-        let snapshot = parts.map(\.part) + draftParts
+        let snapshot = parts.map(\.part) + draft.parts
         let composer = composer
         Task {
             let result = await Task.detached(priority: .userInitiated) {

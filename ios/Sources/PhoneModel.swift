@@ -18,8 +18,8 @@ final class PhoneModel {
     static let draftDebounce = Duration.milliseconds(350)
 
     private(set) var parts: [PhonePart] = []
-    private(set) var draftText = ""
-    private(set) var draftDigest: Card?
+    private(set) var draft = DraftDocument(
+        directory: FileManager.default.temporaryDirectory.appending(path: "thermal-printer-draft-\(UUID().uuidString)"))
     private(set) var isDigesting = false
     private(set) var preview: UIImage?
     private(set) var rows = 0
@@ -32,65 +32,44 @@ final class PhoneModel {
     @ObservationIgnored private let composer = StripComposer()
     @ObservationIgnored private var generation = 0
     @ObservationIgnored private var recomposeTask: Task<Void, Never>?
-    @ObservationIgnored private var draftImages: [Int: Data] = [:]
-    @ObservationIgnored private var draftImageURLs: [Int: URL] = [:]
-    @ObservationIgnored private let draftDirectory = FileManager.default.temporaryDirectory
-        .appending(path: "thermal-printer-draft-\(UUID().uuidString)")
 
     var lengthText: String { LengthPolicy.lengthText(rows: rows) }
     var canPrint: Bool { rows > 0 && !isPrinting }
-    var canDigest: Bool {
-        !isDigesting && !Draft.plainText(draftText).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
-    private var draftParts: [Part] {
-        guard !draftText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return [] }
-        if let draftDigest { return [.card(draftDigest)] }
-        return [.markdown(Draft.markdown(draftText, images: draftImageURLs))]
-    }
+    var canDigest: Bool { !isDigesting && draft.canDigest }
 
     func edit(_ text: String) {
-        draftText = text
-        draftDigest = nil
+        draft.edit(text)
         recompose(after: Self.draftDebounce)
     }
 
     func clearDraft() {
-        draftText = ""
-        draftDigest = nil
-        draftImages = [:]
-        draftImageURLs = [:]
-        try? FileManager.default.removeItem(at: draftDirectory)
+        draft.clear()
         recompose()
     }
 
     func digest() {
         guard canDigest else { return }
-        let source = draftText
+        let source = draft.text
         isDigesting = true
         Task {
             let card = await MemoCard.make(Draft.plainText(source), summarizer: summarizer)
             isDigesting = false
-            guard source == draftText else { return }
-            draftDigest = card
+            draft.apply(card, to: source)
             recompose()
         }
     }
 
     func appendToDraft(image data: Data) {
-        let number = (draftImages.keys.max() ?? 0) + 1
-        let url = draftDirectory.appending(path: "image-\(number).png")
         do {
-            try FileManager.default.createDirectory(at: draftDirectory, withIntermediateDirectories: true)
-            try data.write(to: url)
+            append(try draft.addImage(data))
         } catch {
             banner = "画像を保存できません（\(error.localizedDescription)）"
-            return
         }
-        draftImages[number] = data
-        draftImageURLs[number] = url
-        let separator = draftText.isEmpty || draftText.hasSuffix("\n") ? "" : "\n"
-        edit(draftText + separator + Draft.token(number) + "\n")
+    }
+
+    func append(_ text: String) {
+        let separator = draft.text.isEmpty || draft.text.hasSuffix("\n") ? "" : "\n"
+        edit(draft.text + separator + text + "\n")
     }
 
     func pasted(_ providers: [NSItemProvider]) {
@@ -100,8 +79,7 @@ final class PhoneModel {
                     let data = await Self.data(of: provider, type: type) {
                     appendToDraft(image: data)
                 } else if provider.canLoadObject(ofClass: String.self), let text = await Self.text(of: provider) {
-                    let separator = draftText.isEmpty || draftText.hasSuffix("\n") ? "" : "\n"
-                    edit(draftText + separator + text)
+                    append(text)
                 }
             }
         }
@@ -144,7 +122,7 @@ final class PhoneModel {
     }
 
     func setReminder(_ item: ReminderItem, checked: Bool) {
-        let key = Self.key(item)
+        let key = item.key
         if checked {
             guard !isChecked(key) else { return }
             add(.card(ReminderCard.make(item, now: Date())), reminderKey: key)
@@ -171,7 +149,7 @@ final class PhoneModel {
         isPrinting = true
         banner = nil
         let length = lengthText
-        let snapshot = parts.map(\.part) + draftParts
+        let snapshot = parts.map(\.part) + draft.parts
         let bitmap = composer.compose(snapshot).bitmap
         do {
             let result = try await VMPrinter.shared.print(bitmap, density: Self.density)
@@ -184,15 +162,11 @@ final class PhoneModel {
         isPrinting = false
     }
 
-    static func key(_ item: ReminderItem) -> String {
-        "\(item.list)|\(item.title)|\(item.due?.timeIntervalSince1970 ?? 0)"
-    }
-
     private func recompose(after delay: Duration = .zero) {
         recomposeTask?.cancel()
         generation += 1
         let current = generation
-        let snapshot = parts.map(\.part) + draftParts
+        let snapshot = parts.map(\.part) + draft.parts
         let composer = composer
         recomposeTask = Task {
             if delay > .zero {
@@ -231,4 +205,8 @@ final class PhoneModel {
             }
         }
     }
+}
+
+extension ReminderItem {
+    var key: String { "\(list)|\(title)|\(due?.timeIntervalSince1970 ?? 0)" }
 }

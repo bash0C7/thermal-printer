@@ -69,9 +69,8 @@ private let original = "会議の議題は三つ。印字長の警告、要約�
     #expect(decoded == card)
 }
 
-@Test func imageTokensAreNumberedInTheTextAndReplacedByMarkdownImages() {
+@Test func imageTokensAreReplacedByMarkdownImages() {
     let text = "前\n[Image #1]\n後 [Image #2] [Image #9]"
-    #expect(Draft.imageNumbers(in: text) == [1, 2, 9])
     let markdown = Draft.markdown(text, images: [1: URL(fileURLWithPath: "/tmp/a/image-1.png"), 2: URL(fileURLWithPath: "/tmp/a/image-2.png")])
     #expect(markdown == "前\n\n\n![](file:///tmp/a/image-1.png)\n\n\n後 \n\n![](file:///tmp/a/image-2.png)\n\n [Image #9]")
 }
@@ -82,4 +81,44 @@ private let original = "会議の議題は三つ。印字長の警告、要約�
 
 @Test func tokenTextIsStable() {
     #expect(Draft.token(3) == "[Image #3]")
+}
+
+private func scratchDraft() -> DraftDocument {
+    DraftDocument(directory: FileManager.default.temporaryDirectory.appending(path: "draft-test-\(UUID().uuidString)"))
+}
+
+@Test func blankDraftHasNoPartsAndCannotBeDigested() {
+    var draft = scratchDraft()
+    draft.edit("  \n")
+    #expect(draft.parts.isEmpty)
+    #expect(!draft.canDigest)
+    draft.edit("[Image #1]")
+    #expect(!draft.canDigest)
+}
+
+@Test func draftImagesGetNextNumbersAndAppearAsMarkdownImages() throws {
+    var draft = scratchDraft()
+    #expect(try draft.addImage(Data([1])) == "[Image #1]")
+    #expect(try draft.addImage(Data([2])) == "[Image #2]")
+    draft.edit("a [Image #2]")
+    guard case .markdown(let markdown, _, _) = try #require(draft.parts.first) else {
+        Issue.record("not markdown")
+        return
+    }
+    #expect(markdown.contains("![](file://"))
+    #expect(markdown.contains("image-2.png"))
+    draft.clear()
+    #expect(try draft.addImage(Data([3])) == "[Image #1]")
+}
+
+@Test func digestReplacesTheMarkdownUntilTheTextChanges() async {
+    var draft = scratchDraft()
+    draft.edit("本文")
+    let card = await MemoCard.make("本文", summarizer: KindSummarizer())
+    draft.apply(card, to: "別の本文")
+    #expect(draft.digest == nil)
+    draft.apply(card, to: "本文")
+    #expect(draft.parts == [.card(card)])
+    draft.edit("本文を直した")
+    #expect(draft.digest == nil)
 }
