@@ -18,11 +18,19 @@ public struct QRCode: Equatable, Sendable {
 
     public var sideDots: Int { moduleCount * dotsPerModule }
 
-    public init(_ text: String) throws {
+    public static func moduleCount(for text: String) -> Int? {
+        modulesOutput(for: text).map { Int($0.extent.width) }
+    }
+
+    private static func modulesOutput(for text: String) -> CIImage? {
         let filter = CIFilter.qrCodeGenerator()
         filter.message = Data(text.utf8)
         filter.correctionLevel = "M"
-        guard let output = filter.outputImage else { throw Failure.generationFailed }
+        return filter.outputImage
+    }
+
+    public init(_ text: String) throws {
+        guard let output = Self.modulesOutput(for: text) else { throw Failure.generationFailed }
         let context = CIContext(options: [.workingColorSpace: NSNull()])
         guard let modules = context.createCGImage(
             output, from: output.extent, format: .L8, colorSpace: CGColorSpaceCreateDeviceGray()

@@ -6,6 +6,7 @@ public struct Card: Codable, Equatable, Sendable {
         case slack
         case url
         case reminder
+        case memo
     }
 
     public struct Header: Codable, Equatable, Sendable {
@@ -50,10 +51,11 @@ public struct Card: Codable, Equatable, Sendable {
     public var title: String
     public var sections: [Section]
     public var note: String?
+    public var qr: String?
 
     public init(
         version: Int = 1, kind: Kind, url: String?, header: Header,
-        title: String, sections: [Section] = [], note: String? = nil
+        title: String, sections: [Section] = [], note: String? = nil, qr: String? = nil
     ) {
         self.version = version
         self.kind = kind
@@ -62,6 +64,7 @@ public struct Card: Codable, Equatable, Sendable {
         self.title = title
         self.sections = sections
         self.note = note
+        self.qr = qr
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -73,5 +76,6 @@ public struct Card: Codable, Equatable, Sendable {
         try container.encode(title, forKey: .title)
         try container.encode(sections, forKey: .sections)
         try container.encodeIfPresent(note, forKey: .note)
+        try container.encodeIfPresent(qr, forKey: .qr)
     }
 }

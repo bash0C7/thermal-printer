@@ -49,8 +49,8 @@ enum CardFixture {
         #expect(card.header.emphasis == nil)
     }
 
-    @Test func kindsAreTheFourNamesOfTheSchema() {
-        #expect(Card.Kind.allCases.map(\.rawValue) == ["github", "slack", "url", "reminder"])
+    @Test func kindsAreTheFiveNamesOfTheSchema() {
+        #expect(Card.Kind.allCases.map(\.rawValue) == ["github", "slack", "url", "reminder", "memo"])
     }
 
     @Test func unknownKindIsRejected() {

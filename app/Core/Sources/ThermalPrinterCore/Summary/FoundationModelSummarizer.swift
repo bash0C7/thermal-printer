@@ -52,6 +52,8 @@ public struct FoundationModelSummarizer: Summarizer {
         switch kind {
         case .overview: "次のGitHubの本文を要約してください。\n\n本文:\n\(body)"
         case .comment: "次のGitHubの最新コメントを要約してください。\n\nコメント:\n\(body)"
+        case .heading: "次の文章に見出しを付けてください。\n\n文章:\n\(body)"
+        case .digest: "次の文章を要約してください。\n\n文章:\n\(body)"
         }
     }
 
@@ -62,6 +64,10 @@ public struct FoundationModelSummarizer: Summarizer {
             return "あなたはGitHubのissueやpull requestの本文を日本語で要約する編集者です。何についての話で、何が問題で、何が求められているかを、合計\(kind.characterLimit)文字程度、最大\(kind.lineLimit)行で書きます。\(common)"
         case .comment:
             return "あなたはGitHubの最新コメントを日本語で要約する編集者です。誰かが何を伝えているかを、合計\(kind.characterLimit)文字程度、最大\(kind.lineLimit)行で書きます。\(common)"
+        case .heading:
+            return "あなたは文章に見出しを付ける編集者です。内容を表す名詞句の見出しを、\(kind.characterLimit)文字以内の1行で書きます。文末に句点は付けません。\(common)"
+        case .digest:
+            return "あなたは文章を日本語で要約する編集者です。何についての文章で、要点が何かを、合計\(kind.characterLimit)文字程度、最大\(kind.lineLimit)行で書きます。\(common)"
         }
     }
 }

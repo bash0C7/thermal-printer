@@ -35,8 +35,27 @@ private let standard = URLHandlerRegistry.standard(
     #expect(runner.callCount == 0)
 }
 
+@Test func webURLIsRoutedToTheWebPageHandler() async throws {
+    let runner = FakeGHRunner(output: "<title>題</title><p>本文は二十文字以上あるので要約の対象になります。</p>")
+    let registry = URLHandlerRegistry.standard(
+        runner: runner, summarizer: TruncatingSummarizer(), locator: GHLocator(isExecutable: { _ in true }), now: { Date() })
+    let card = await registry.card(for: URL(string: "https://example.com/a")!)
+    #expect(card.kind == .url)
+    #expect(card.title == "題")
+    #expect(runner.lastExecutable?.path == "/usr/bin/curl")
+}
+
+@Test func webURLThatCannotBeFetchedFallsBackToTheUrlCardWithAReason() async throws {
+    let runner = FakeGHRunner(output: "curl: (6) Could not resolve host", terminationStatus: 6)
+    let registry = URLHandlerRegistry.standard(
+        runner: runner, summarizer: TruncatingSummarizer(), locator: GHLocator(isExecutable: { _ in true }), now: { Date() })
+    let card = await registry.card(for: URL(string: "https://example.com/a")!)
+    #expect(card.title == "https://example.com/a")
+    #expect(card.note == "取得できません（curl: (6) Could not resolve host）")
+}
+
 @Test func unknownURLBecomesAUrlCardWithTheHostTheFullURLAndNoNote() async throws {
-    let text = "https://example.com/articles/2026/10/roll-length?utm_source=newsletter&ref=abcdefghijklmnopqrstuvwxyz0123456789"
+    let text = "ftp://example.com/articles/2026/10/roll-length?utm_source=newsletter&ref=abcdefghijklmnopqrstuvwxyz0123456789"
     let card = await standard.card(for: URL(string: text)!)
     #expect(card.kind == .url)
     #expect(card.url == text)
@@ -65,7 +84,7 @@ private let standard = URLHandlerRegistry.standard(
 }
 
 @Test func unknownURLCardsEncodeToTheSharedCardSchema() async throws {
-    let card = await standard.card(for: URL(string: "https://example.com/a")!)
+    let card = await standard.card(for: URL(string: "ftp://example.com/a")!)
     let decoded = try JSONDecoder().decode(Card.self, from: JSONEncoder().encode(card))
     #expect(decoded == card)
 }

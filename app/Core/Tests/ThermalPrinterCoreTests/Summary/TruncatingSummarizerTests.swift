@@ -56,3 +56,22 @@ import Testing
     let text = String(repeating: "あ", count: 90)
     #expect(SummaryKind.overview.fit(text) == text)
 }
+
+@Test func headingKeepsTwentyCharactersOnOneLine() async {
+    let s = await TruncatingSummarizer().summarize(String(repeating: "え", count: 50), kind: .heading)
+    #expect(s.text == String(repeating: "え", count: 20) + "…")
+    #expect(SummaryKind.heading.fit("一\n二") == "一")
+}
+
+@Test func digestKeepsOneHundredTwentyCharactersAndFiveLines() async {
+    let s = await TruncatingSummarizer().summarize(String(repeating: "お", count: 300), kind: .digest)
+    #expect(s.text == String(repeating: "お", count: 120) + "…")
+    #expect(SummaryKind.digest.fit("1\n2\n3\n4\n5\n6") == "1\n2\n3\n4\n5")
+}
+
+@Test func promptsForFreeTextDoNotMentionGitHub() {
+    for kind in [SummaryKind.heading, .digest] {
+        #expect(!FoundationModelSummarizer.prompt("本文", kind: kind).contains("GitHub"))
+        #expect(!FoundationModelSummarizer.instructions(for: kind).contains("GitHub"))
+    }
+}
