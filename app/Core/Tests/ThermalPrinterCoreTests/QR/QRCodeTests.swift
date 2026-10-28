@@ -66,7 +66,7 @@ func everyModuleIsAtLeastThreeDots(url: String) throws {
 @Test(arguments: [
     (QRFixture.githubIssue, 35, 3, 105),
     (QRFixture.slackPermalink, 43, 3, 129),
-    (QRFixture.longURL, 63, 3, 189),
+    (QRFixture.longURL, 63, 4, 252),
 ])
 func sideFollowsFromTheScaleChosenFirst(url: String, modules: Int, scale: Int, side: Int) throws {
     let qr = try QRCode(url)
@@ -91,6 +91,20 @@ func sideFollowsFromTheScaleChosenFirst(url: String, modules: Int, scale: Int, s
     let qr = try QRCode("x")
     #expect(qr.dotsPerModule > 3)
     #expect(qr.sideDots <= 128)
+}
+
+@Test(arguments: [40, 80, 150, 250])
+func longPayloadsFollowTheLargerTargetSide(characters: Int) throws {
+    let qr = try QRCode(String(repeating: "あ", count: characters))
+    #expect(qr.moduleCount > QRCode.shortMaxModules)
+    let fitsAtLongScale = qr.moduleCount * QRCode.longDotsPerModule <= QRCode.cardSideDots
+    #expect(qr.dotsPerModule == (fitsAtLongScale ? QRCode.longDotsPerModule : QRCode.minimumDotsPerModule))
+}
+
+@Test func shortPayloadsKeepTheSmallerTargetSide() throws {
+    let qr = try QRCode(QRFixture.githubIssue)
+    #expect(qr.moduleCount <= QRCode.shortMaxModules)
+    #expect(qr.dotsPerModule == 3)
 }
 
 @Test func bitmapIsExactlyAsTallAsTheSideAndInkStaysInsideIt() throws {

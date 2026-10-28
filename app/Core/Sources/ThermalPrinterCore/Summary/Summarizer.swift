@@ -3,11 +3,15 @@ import Foundation
 public enum SummaryKind: Sendable, Hashable {
     case overview
     case comment
+    case heading
+    case digest
 
     public var characterLimit: Int {
         switch self {
         case .overview: 60
         case .comment: 40
+        case .heading: 20
+        case .digest: 120
         }
     }
 
@@ -15,6 +19,8 @@ public enum SummaryKind: Sendable, Hashable {
         switch self {
         case .overview: 3
         case .comment: 2
+        case .heading: 1
+        case .digest: 5
         }
     }
 

@@ -5,6 +5,9 @@ import Foundation
 
 public struct QRCode: Equatable, Sendable {
     public static let targetSideDots = 128
+    public static let longDotsPerModule = 4
+    public static let cardSideDots = Bitmap1.contentWidth - 16
+    public static let shortMaxModules = 45
     public static let minimumDotsPerModule = 3
 
     public enum Failure: Error, Equatable {
@@ -18,11 +21,19 @@ public struct QRCode: Equatable, Sendable {
 
     public var sideDots: Int { moduleCount * dotsPerModule }
 
-    public init(_ text: String) throws {
+    public static func moduleCount(for text: String) -> Int? {
+        modulesOutput(for: text).map { Int($0.extent.width) }
+    }
+
+    private static func modulesOutput(for text: String) -> CIImage? {
         let filter = CIFilter.qrCodeGenerator()
         filter.message = Data(text.utf8)
         filter.correctionLevel = "M"
-        guard let output = filter.outputImage else { throw Failure.generationFailed }
+        return filter.outputImage
+    }
+
+    public init(_ text: String) throws {
+        guard let output = Self.modulesOutput(for: text) else { throw Failure.generationFailed }
         let context = CIContext(options: [.workingColorSpace: NSNull()])
         guard let modules = context.createCGImage(
             output, from: output.extent, format: .L8, colorSpace: CGColorSpaceCreateDeviceGray()
@@ -31,7 +42,8 @@ public struct QRCode: Equatable, Sendable {
         }
 
         let count = modules.width
-        let scale = max(QRCode.minimumDotsPerModule, QRCode.targetSideDots / count)
+        let longScale = count * QRCode.longDotsPerModule <= QRCode.cardSideDots ? QRCode.longDotsPerModule : QRCode.minimumDotsPerModule
+        let scale = count <= QRCode.shortMaxModules ? max(QRCode.minimumDotsPerModule, QRCode.targetSideDots / count) : longScale
         let side = count * scale
         guard side <= Bitmap1.contentWidth else { throw Failure.tooWide(sideDots: side) }
 

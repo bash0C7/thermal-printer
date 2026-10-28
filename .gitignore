@@ -5,3 +5,5 @@ vendor/
 build/
 app/ThermalPrinter.xcodeproj
 .build
+ios/Vendor/
+ios/ThermalPrinterPhone.xcodeproj

@@ -15,7 +15,7 @@ final class GitHubCardTests: XCTestCase {
         putTextOnPasteboard(issueURL)
         let session = try FakeSession.launch(isolatedHome: false)
         session.waitForIdle()
-        session.paste()
+        session.pasteURL()
 
         let row = session.app.item("partRow-0")
         XCTAssertTrue(row.waitForExistence(timeout: 180), "no part row appeared")

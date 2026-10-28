@@ -25,6 +25,7 @@ public struct URLHandlerRegistry: Sendable {
         URLHandlerRegistry(handlers: [
             GitHubHandler(runner: runner, summarizer: summarizer, locator: locator, now: now),
             SlackURLHandler(),
+            WebPageHandler(runner: runner, summarizer: summarizer),
         ])
     }
 

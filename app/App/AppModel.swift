@@ -49,6 +49,10 @@ final class AppModel {
     private(set) var pendingKeys: Set<String> = []
     private(set) var pendingCards = 0
 
+    private(set) var draft = DraftDocument(
+        directory: FileManager.default.temporaryDirectory.appending(path: "thermal-printer-draft-\(UUID().uuidString)"))
+    private(set) var isDigesting = false
+
     private(set) var status: PrinterStatusSnapshot?
     private(set) var isRefreshingStatus = false
     private(set) var isPrinting = false
@@ -61,8 +65,12 @@ final class AppModel {
     @ObservationIgnored private let composer = StripComposer()
     @ObservationIgnored private var composeGeneration = 0
     @ObservationIgnored private var started = false
+    @ObservationIgnored private let summarizer = SummarizerSelector().summarizer
     @ObservationIgnored private lazy var registry = URLHandlerRegistry.standard(
-        runner: runner, summarizer: SummarizerSelector().summarizer)
+        runner: runner, summarizer: summarizer)
+    @ObservationIgnored private var draftRecompose: Task<Void, Never>?
+
+    static let draftDebounce = Duration.milliseconds(350)
 
     static var defaultLaunch: PrinterLaunch {
         #if DEBUG
@@ -163,13 +171,54 @@ final class AppModel {
         Task { await receive(PasteLoader.load(providers)) }
     }
 
-    func pasteFromPasteboard() {
-        let content = PasteLoader.pasteboardContent()
-        Task { await receive(content) }
-    }
-
     func receive(photos: [ImportedPhoto]) {
         for photo in photos { add(.image(photo.data)) }
+    }
+
+    var draftText: String { draft.text }
+
+    var canDigestDraft: Bool { !isDigesting && draft.canDigest }
+
+    func draftEdited(_ text: String) {
+        draft.edit(text)
+        previews.invalidate()
+        draftRecompose?.cancel()
+        draftRecompose = Task {
+            do {
+                try await Task.sleep(for: Self.draftDebounce)
+            } catch {
+                return
+            }
+            recompose()
+        }
+    }
+
+    func addDraftImage(_ data: Data) -> String? {
+        do {
+            return try draft.addImage(data)
+        } catch {
+            banner = Banner(kind: .failure, text: "画像を保存できません（\(error.localizedDescription)）")
+            return nil
+        }
+    }
+
+    func digestDraft() {
+        guard canDigestDraft else { return }
+        let source = draft.text
+        isDigesting = true
+        pendingCards += 1
+        Task {
+            let card = await MemoCard.make(Draft.plainText(source), summarizer: summarizer)
+            pendingCards -= 1
+            isDigesting = false
+            draft.apply(card, to: source)
+            recompose()
+        }
+    }
+
+    func clearDraft() {
+        draft.clear()
+        recompose()
     }
 
     func isChecked(_ key: String) -> Bool {
@@ -301,7 +350,7 @@ final class AppModel {
         composeGeneration += 1
         let generation = composeGeneration
         previews.invalidate()
-        let snapshot = parts.map(\.part)
+        let snapshot = parts.map(\.part) + draft.parts
         let composer = composer
         Task {
             let result = await Task.detached(priority: .userInitiated) {
