@@ -57,3 +57,16 @@ private func varied(characters: Int) -> String {
     let packedJapanese = QRPayload.pack(varied(characters: 3000))
     #expect(packedEnglish.packedCharacters > packedJapanese.packedCharacters * 2)
 }
+
+@Test(arguments: ["Note: the printer is ready.", "  TODO: buy paper", "a:b", "tel:0312345678"])
+func textThatLooksLikeASchemeGetsALabelLine(text: String) {
+    #expect(QRPayload.payload(for: text) == "メモ\n" + text)
+    #expect(QRPayload.pack(text).payload == "メモ\n" + text)
+}
+
+@Test(arguments: [
+    "https://example.com/a", "HTTP://example.com", "Meeting notes: next week", "メモ: 来週", "今日の議題: 印字", "plain text",
+])
+func otherTextIsLeftAsItIs(text: String) {
+    #expect(QRPayload.payload(for: text) == text)
+}

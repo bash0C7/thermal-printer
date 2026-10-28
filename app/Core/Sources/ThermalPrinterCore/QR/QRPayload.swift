@@ -11,14 +11,21 @@ public enum QRPayload {
         public var isComplete: Bool { packedCharacters == totalCharacters }
     }
 
+    public static func payload(for text: String) -> String {
+        let lowered = text.lowercased()
+        let looksLikeAScheme = text.firstMatch(of: /^\s*[A-Za-z][A-Za-z0-9+.\-]*:/) != nil
+        let isWebURL = lowered.hasPrefix("http://") || lowered.hasPrefix("https://")
+        return looksLikeAScheme && !isWebURL ? "メモ\n" + text : text
+    }
+
     public static func pack(_ text: String, maxModules: Int = maxCardModules) -> Packed {
         let characters = Array(text)
         let total = characters.count
         func fits(_ count: Int) -> Bool {
-            QRCode.moduleCount(for: String(characters.prefix(count))).map { $0 <= maxModules } ?? false
+            QRCode.moduleCount(for: payload(for: String(characters.prefix(count)))).map { $0 <= maxModules } ?? false
         }
         if total == 0 || fits(total) {
-            return Packed(payload: text, packedCharacters: total, totalCharacters: total)
+            return Packed(payload: payload(for: text), packedCharacters: total, totalCharacters: total)
         }
         var low = 0
         var high = total - 1
@@ -30,6 +37,7 @@ public enum QRPayload {
                 high = middle - 1
             }
         }
-        return Packed(payload: String(characters.prefix(low)), packedCharacters: low, totalCharacters: total)
+        return Packed(
+            payload: payload(for: String(characters.prefix(low))), packedCharacters: low, totalCharacters: total)
     }
 }
