@@ -66,7 +66,7 @@ func everyModuleIsAtLeastThreeDots(url: String) throws {
 @Test(arguments: [
     (QRFixture.githubIssue, 35, 3, 105),
     (QRFixture.slackPermalink, 43, 3, 129),
-    (QRFixture.longURL, 63, 3, 189),
+    (QRFixture.longURL, 63, 4, 252),
 ])
 func sideFollowsFromTheScaleChosenFirst(url: String, modules: Int, scale: Int, side: Int) throws {
     let qr = try QRCode(url)
@@ -93,12 +93,17 @@ func sideFollowsFromTheScaleChosenFirst(url: String, modules: Int, scale: Int, s
     #expect(qr.sideDots <= 128)
 }
 
-@Test func payloadTargetEnlargesModulesUpToTheLargerSide() throws {
-    let qr = try QRCode(QRFixture.githubIssue, targetSideDots: QRCode.payloadTargetSideDots)
-    #expect(qr.moduleCount == 35)
-    #expect(qr.dotsPerModule == 6)
-    #expect(qr.sideDots <= QRCode.payloadTargetSideDots)
-    #expect(try QRDecoder.decode(qr.bitmap) == QRFixture.githubIssue)
+@Test(arguments: [40, 80, 150, 250])
+func longPayloadsFollowTheLargerTargetSide(characters: Int) throws {
+    let qr = try QRCode(String(repeating: "あ", count: characters))
+    #expect(qr.moduleCount > QRCode.shortMaxModules)
+    #expect(qr.dotsPerModule == max(QRCode.minimumDotsPerModule, QRCode.longTargetSideDots / qr.moduleCount))
+}
+
+@Test func shortPayloadsKeepTheSmallerTargetSide() throws {
+    let qr = try QRCode(QRFixture.githubIssue)
+    #expect(qr.moduleCount <= QRCode.shortMaxModules)
+    #expect(qr.dotsPerModule == 3)
 }
 
 @Test func bitmapIsExactlyAsTallAsTheSideAndInkStaysInsideIt() throws {

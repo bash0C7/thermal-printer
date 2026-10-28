@@ -39,8 +39,7 @@ public struct CardRenderer: Sendable {
         let right = Bitmap1.contentWidth - margin
         let top = CardRenderer.topPadding
 
-        let qr = try card.qr.map { try QRCode($0, targetSideDots: QRCode.payloadTargetSideDots) }
-            ?? card.url.map { try QRCode($0) }
+        let qr = try (card.qr ?? card.url).map { try QRCode($0) }
         if let qr, qr.sideDots > printable {
             throw QRCode.Failure.tooWide(sideDots: qr.sideDots)
         }

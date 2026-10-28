@@ -115,7 +115,9 @@ enum CardAntiGoal {
         let r = try renderer.render(CardFixture.card(name))
         let qr = try #require(r.qrFrame)
         #expect(qr.height > 128)
-        #expect(r.headerFrame.height == max(qr.height, r.headerTextFrame.height))
+        let stacked = r.headerTextFrame.minY >= qr.maxY
+        let expected = stacked ? r.headerTextFrame.maxY - qr.minY : max(qr.height, r.headerTextFrame.height)
+        #expect(r.headerFrame.height == expected)
         #expect(r.headerFrame.height >= qr.height)
         #expect(r.titleFrame.minY >= qr.maxY)
         #expect(r.titleFrame.minY >= r.headerTextFrame.maxY)
