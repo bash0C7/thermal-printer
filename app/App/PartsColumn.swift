@@ -97,7 +97,7 @@ struct PartsColumn: View {
                 Button {
                     model.digestDraft()
                 } label: {
-                    Label("見出しと要約にして、原文をQRに圧縮", systemImage: "wand.and.stars")
+                    Label("見出しと要約にして、原文をQRに入れる", systemImage: "wand.and.stars")
                 }
                 .disabled(!model.canDigestDraft)
                 .accessibilityIdentifier("digestButton")

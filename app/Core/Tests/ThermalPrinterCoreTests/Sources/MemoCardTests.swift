@@ -25,10 +25,10 @@ private let original = "会議の議題は三つ。印字長の警告、要約�
     #expect(card.note == nil)
 }
 
-@Test func memoQRHoldsTheCompressedOriginal() async throws {
+@Test func memoQRHoldsTheOriginalText() async throws {
     let card = await MemoCard.make(original, summarizer: KindSummarizer())
     let qr = try #require(card.qr)
-    #expect(QRPayload.decode(qr) == original)
+    #expect(qr == original)
 }
 
 @Test func memoCardRendersWithItsQRAndScansBackToTheOriginal() async throws {
@@ -41,7 +41,7 @@ private let original = "会議の議題は三つ。印字長の警告、要約�
             qrOnly.set(x: x, y: y)
         }
     }
-    #expect(QRPayload.decode(try QRDecoder.decode(qrOnly)) == original)
+    #expect(try QRDecoder.decode(qrOnly) == original)
 }
 
 @Test func memoWithTruncationFallbackIsNoted() async {
@@ -59,7 +59,7 @@ private let original = "会議の議題は三つ。印字長の警告、要約�
     let card = await MemoCard.make(long, summarizer: KindSummarizer())
     let packed = QRPayload.pack(long)
     #expect(card.note == "QRには全3000文字のうち先頭\(packed.packedCharacters)文字を収めています")
-    #expect(QRPayload.decode(try #require(card.qr)) == String(long.prefix(packed.packedCharacters)))
+    #expect(card.qr == String(long.prefix(packed.packedCharacters)))
     _ = try CardRenderer().render(card)
 }
 

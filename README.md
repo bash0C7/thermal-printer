@@ -78,7 +78,7 @@ mise exec ruby@4.0.5 -- rake app:install
 
 `app:build` が `build/app/stage/ThermalPrinter.app` を作ります。`app:install` が `~/Applications/ThermalPrinter.app` に置きます。アプリは picoruby、BLE の dylib、CLI のソースを同梱します。
 
-テキストボックスに文章を書くと markdown として組まれます。画像を貼ると `[Image #1]` と出て、その位置に画像が組まれます。「見出しと要約にして、原文をQRに圧縮」で、見出しと要約のカードに置き換わります。原文は QR に入り（`TP1` と空白、Base45、raw deflate の順に並べます。CyberChef の「From Base45」「Raw Inflate」で戻せます）、日本語で 500〜800 文字、英語で 2,000 文字前後まで入ります。URL 欄は GitHub 以外の http / https も `curl` で取り込み、本文を要約します。
+テキストボックスに文章を書くと markdown として組まれます。画像を貼ると `[Image #1]` と出て、その位置に画像が組まれます。「見出しと要約にして、原文をQRに入れる」で、見出しと要約のカードに置き換わります。原文は QR にそのまま入り、iPhone のカメラで読み取ると原文が表示されます。日本語で 300 文字前後、英語で 900 文字前後まで入ります。URL 欄は GitHub 以外の http / https も `curl` で取り込み、本文を要約します。
 
 ## iPhone アプリ
 

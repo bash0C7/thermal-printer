@@ -97,7 +97,8 @@ func sideFollowsFromTheScaleChosenFirst(url: String, modules: Int, scale: Int, s
 func longPayloadsFollowTheLargerTargetSide(characters: Int) throws {
     let qr = try QRCode(String(repeating: "あ", count: characters))
     #expect(qr.moduleCount > QRCode.shortMaxModules)
-    #expect(qr.dotsPerModule == max(QRCode.minimumDotsPerModule, QRCode.longTargetSideDots / qr.moduleCount))
+    let fitsAtLongScale = qr.moduleCount * QRCode.longDotsPerModule <= QRCode.cardSideDots
+    #expect(qr.dotsPerModule == (fitsAtLongScale ? QRCode.longDotsPerModule : QRCode.minimumDotsPerModule))
 }
 
 @Test func shortPayloadsKeepTheSmallerTargetSide() throws {

@@ -5,7 +5,8 @@ import Foundation
 
 public struct QRCode: Equatable, Sendable {
     public static let targetSideDots = 128
-    public static let longTargetSideDots = 300
+    public static let longDotsPerModule = 4
+    public static let cardSideDots = Bitmap1.contentWidth - 16
     public static let shortMaxModules = 45
     public static let minimumDotsPerModule = 3
 
@@ -41,8 +42,8 @@ public struct QRCode: Equatable, Sendable {
         }
 
         let count = modules.width
-        let target = count <= QRCode.shortMaxModules ? QRCode.targetSideDots : QRCode.longTargetSideDots
-        let scale = max(QRCode.minimumDotsPerModule, target / count)
+        let longScale = count * QRCode.longDotsPerModule <= QRCode.cardSideDots ? QRCode.longDotsPerModule : QRCode.minimumDotsPerModule
+        let scale = count <= QRCode.shortMaxModules ? max(QRCode.minimumDotsPerModule, QRCode.targetSideDots / count) : longScale
         let side = count * scale
         guard side <= Bitmap1.contentWidth else { throw Failure.tooWide(sideDots: side) }
 
