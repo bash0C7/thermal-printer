@@ -12,9 +12,9 @@ struct ContentView: View {
         NavigationStack {
             List {
                 draftSection
+                previewSection
                 remindersSection
                 partsSection
-                previewSection
             }
             .navigationTitle("サーマルプリンター")
             .task { await model.loadReminders() }
