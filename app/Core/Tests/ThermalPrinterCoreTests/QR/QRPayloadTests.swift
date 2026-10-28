@@ -36,18 +36,24 @@ func base45RoundTrips(bytes: [UInt8]) {
 
 @Test func payloadRoundTripsThroughCompression() throws {
     let payload = try #require(QRPayload.encode(japanese))
-    #expect(payload.hasPrefix("TP1:"))
+    #expect(payload.hasPrefix("TP1 "))
     #expect(QRPayload.decode(payload) == japanese)
 }
 
 @Test func foreignPayloadsAreNotDecoded() {
     #expect(QRPayload.decode("https://example.com") == nil)
-    #expect(QRPayload.decode("TP1:!!!") == nil)
+    #expect(QRPayload.decode("TP1 !!!") == nil)
 }
 
 @Test func payloadUsesOnlyTheAlphanumericQRAlphabet() throws {
     let payload = try #require(QRPayload.encode(japanese))
     #expect(payload.allSatisfy { "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:".contains($0) })
+}
+
+@Test(arguments: [1, 5, 20, 80, 300])
+func payloadNeverReadsAsAURIScheme(characters: Int) throws {
+    let payload = try #require(QRPayload.encode(varied(characters: characters)))
+    #expect(payload.firstMatch(of: /^[A-Za-z][A-Za-z0-9+.\-]*:/) == nil)
 }
 
 @Test func shortTextIsPackedCompletely() {

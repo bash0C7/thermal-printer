@@ -46,7 +46,7 @@ public enum Base45 {
 }
 
 public enum QRPayload {
-    public static let prefix = "TP1:"
+    public static let prefix = "TP1 "
     public static let maxCardModules = (Bitmap1.contentWidth - 2 * 8) / QRCode.minimumDotsPerModule
 
     public struct Packed: Equatable, Sendable {
