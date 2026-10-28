@@ -5,6 +5,7 @@ import Foundation
 
 public struct QRCode: Equatable, Sendable {
     public static let targetSideDots = 128
+    public static let payloadTargetSideDots = 240
     public static let minimumDotsPerModule = 3
 
     public enum Failure: Error, Equatable {
@@ -29,7 +30,7 @@ public struct QRCode: Equatable, Sendable {
         return filter.outputImage
     }
 
-    public init(_ text: String) throws {
+    public init(_ text: String, targetSideDots: Int = QRCode.targetSideDots) throws {
         guard let output = Self.modulesOutput(for: text) else { throw Failure.generationFailed }
         let context = CIContext(options: [.workingColorSpace: NSNull()])
         guard let modules = context.createCGImage(
@@ -39,7 +40,7 @@ public struct QRCode: Equatable, Sendable {
         }
 
         let count = modules.width
-        let scale = max(QRCode.minimumDotsPerModule, QRCode.targetSideDots / count)
+        let scale = max(QRCode.minimumDotsPerModule, targetSideDots / count)
         let side = count * scale
         guard side <= Bitmap1.contentWidth else { throw Failure.tooWide(sideDots: side) }
 

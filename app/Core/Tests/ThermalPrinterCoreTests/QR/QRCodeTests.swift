@@ -93,6 +93,14 @@ func sideFollowsFromTheScaleChosenFirst(url: String, modules: Int, scale: Int, s
     #expect(qr.sideDots <= 128)
 }
 
+@Test func payloadTargetEnlargesModulesUpToTheLargerSide() throws {
+    let qr = try QRCode(QRFixture.githubIssue, targetSideDots: QRCode.payloadTargetSideDots)
+    #expect(qr.moduleCount == 35)
+    #expect(qr.dotsPerModule == 6)
+    #expect(qr.sideDots <= QRCode.payloadTargetSideDots)
+    #expect(try QRDecoder.decode(qr.bitmap) == QRFixture.githubIssue)
+}
+
 @Test func bitmapIsExactlyAsTallAsTheSideAndInkStaysInsideIt() throws {
     let qr = try QRCode(QRFixture.githubIssue)
     #expect(qr.bitmap.height == qr.sideDots)
