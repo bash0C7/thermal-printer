@@ -1,8 +1,8 @@
 # thermal-printer
 
-Phomemo T02 感熱プリンターに、Mac から印字する道具。Mac アプリ（SwiftUI）が紙幅の白黒ラスタを組み、PicoRuby CLI が BLE で送る。印字を担う Phomemo の制御は mrbgem `picoruby-phomemo-thermal-printer`（`github.com/bash0C7/picoruby-phomemo-thermal-printer`）にあり、`rake vendor:setup` が `vendor/picoruby-phomemo-thermal-printer` に取得する。
+Phomemo T02 感熱プリンターに、Mac から印字する道具。Mac アプリ（SwiftUI）が紙幅の白黒ラスタを組み、PicoRuby CLI が BLE で送る。印字を担う Phomemo の制御は mrbgem `picoruby-phomemo-thermal-printer`（`github.com/bash0C7/picoruby-phomemo-thermal-printer`）にあり、`rake vendor:setup` が `vendor/picoruby-phomemo-thermal-printer` に取得する。iPhone アプリ（`ios/`）は、同じ gem と CLI を mruby VM に入れて印字する。
 
-設計書: `docs/superpowers/specs/2026-10-24-thermal-printer-design.md`。実装計画: `docs/superpowers/plans/`。調査: `docs/research/`。使い方: `README.md`。作業の入口は GitHub issue #1。
+設計書: `docs/superpowers/specs/2026-10-24-thermal-printer-design.md`。実装計画: `docs/superpowers/plans/`。調査: `docs/research/`。使い方: `README.md`。
 
 ## 安全規則（プリンターを守る）
 
@@ -48,6 +48,7 @@ mise exec ruby@4.0.5 -- rake test:e2e          # カードのプレビュー PNG
 mise exec ruby@4.0.5 -- rake app:uitest        # 偽の CLI でアプリを操作する UI テスト。画面とクリップボードを使う
 GITHUB_URL=<issue の URL> GITHUB_EXPECT_ROW=<カード行の文字> mise exec ruby@4.0.5 -- rake app:uitest:github   # 実際の gh で取得したカードを、実 CLI の --dry-run でプレビューする。印字しない
 mise exec ruby@4.0.5 -- rake ios:all           # iPhone アプリ（ios/）を Simulator 向けにビルドして起動する。libmruby は ios:lib（実機向けは ios:device:lib）。実機は ios:device:all
+DEVICE_NAME=<機種名の一部> mise exec ruby@4.0.5 -- rake ios:device:all   # 実機が複数台あるときの対象の指定
 ```
 
 - `test:integration`は製品VMを要する。VMがなければ中断して`rake vm:build`を促す。
