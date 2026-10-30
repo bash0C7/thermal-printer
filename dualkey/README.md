@@ -1,6 +1,6 @@
 # DualKey でデバッグ情報を印字する
 
-M5Stack Chain DualKey（ESP32-S3）のボタンを押すと、ヒープや稼働時間などのデバッグ情報を Phomemo T02 に BLE で印字します。ボタン 1（GPIO17）は赤、ボタン 2（GPIO0）は青に、2 つの LED（GPIO21、電源は GPIO40）を光らせます。
+M5Stack Chain DualKey（ESP32-S3）のボタンを押すと、ヒープや稼働時間などのデバッグ情報を Phomemo T02 に BLE で印字します。ボタン 1（GPIO17）は赤、ボタン 2（GPIO0）は青に、2 つの LED（GPIO21、電源は GPIO40）を光らせます。待機中は暗い緑です。
 
 | ファイル | 内容 |
 |---|---|
@@ -8,6 +8,7 @@ M5Stack Chain DualKey（ESP32-S3）のボタンを押すと、ヒープや稼働
 | `firmware/main_task.rb` | firmware の起動スクリプトです。標準の `main_task.rb` と置き換えます。 |
 | `build_config/esp32-dualkey-report.rb` | firmware の gem の構成です。 |
 | `build_config/dualkey_small.sdkconfig` | Wi-Fi を使わず、接続数を 1 にして静的メモリを減らす設定です。 |
+| `mrbgems/dualkey-link/` | NimBLE の central 接続に、ペアリング、ATT MTU の交換、切断を足す C の mrbgem です。`DualKeyLink.pair`、`exchange_mtu`、`mtu`、`disconnect` を `app.rb` の `LinkTransport` が呼びます。 |
 | `qemu/` | QEMU での確認に使うプローブです。 |
 
 使う gem: [picoruby-debug-probe](https://github.com/bash0C7/picoruby-debug-probe)、[picoruby-text-canvas](https://github.com/bash0C7/picoruby-text-canvas)、[picoruby-phomemo-thermal-printer](https://github.com/bash0C7/picoruby-phomemo-thermal-printer)。`picoruby-debug-probe` と `picoruby-text-canvas` は、このリポジトリと同じ階層に clone します。

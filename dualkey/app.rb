@@ -20,6 +20,29 @@ class Sleeper
   end
 end
 
+class LinkTransport < PhomemoThermalPrinter::Transport
+  PAIR_WAIT_MS = 3000
+  MTU_WAIT_MS = 500
+  DISCONNECT_WAIT_MS = 500
+
+  def subscribe(settle_ms)
+    pair_rc = DualKeyLink.pair(@handle)
+    sleep_ms(PAIR_WAIT_MS) if pair_rc == 0
+    mtu_rc = DualKeyLink.exchange_mtu(@handle)
+    sleep_ms(MTU_WAIT_MS) if mtu_rc == 0
+    puts "LINK pair=#{pair_rc} mtu_rc=#{mtu_rc} mtu=#{DualKeyLink.mtu(@handle)}"
+    super
+  end
+
+  def disconnect
+    if @handle
+      DualKeyLink.disconnect(@handle)
+      sleep_ms(DISCONNECT_WAIT_MS)
+    end
+    super
+  end
+end
+
 class Key
   def initialize(pin)
     @gpio = GPIO.new(pin, GPIO::IN | GPIO::PULL_UP)
@@ -53,7 +76,7 @@ end
 
 RED = [255, 0, 0]
 BLUE = [0, 0, 255]
-OFF = [0, 0, 0]
+IDLE = [0, 32, 0]
 
 clock = Clock.new
 sleeper = Sleeper.new
@@ -64,8 +87,8 @@ key2 = Key.new(0)
 outcome = nil
 
 print_lines = lambda do |lines|
-  job = PhomemoThermalPrinter::Job.new(TextCanvas.new(lines), density: 4, feed: 3)
-  transport = PhomemoThermalPrinter::Transport.new if transport.nil?
+  job = PhomemoThermalPrinter::Job.new(TextCanvas.new([""] + lines + ["", ""]), density: 4, feed: 3)
+  transport = LinkTransport.new if transport.nil?
   session = PhomemoThermalPrinter::PrintSession.new(transport, clock: clock, sleeper: sleeper)
   session.run(job)
 end
@@ -83,7 +106,7 @@ lit_print = lambda do |name, color, snap|
   begin
     result = print_lines.call(snap.to_lines)
     outcome = result.ok ? "OK" : result.error.to_s.upcase
-    puts "PRINT #{name} #{outcome}"
+    puts "PRINT #{name} #{outcome} #{result.warnings.inspect} #{result.job.inspect} #{result.notify.inspect}"
   rescue Exception => e
     outcome = "RAISED #{e.class}"
     puts "PRINT #{name} #{outcome} #{e.message}"
@@ -91,7 +114,7 @@ lit_print = lambda do |name, color, snap|
     transport.disconnect if transport
     GC.start
     probe.sample
-    led.fill(OFF)
+    led.fill(IDLE)
   end
 end
 
@@ -99,7 +122,7 @@ probe.on(:key1) { |snap| lit_print.call("key1", RED, snap) }
 probe.on(:key2) { |snap| lit_print.call("key2", BLUE, snap) }
 probe.on(:error) { |e| puts "ERROR #{e.class} #{e.message}" }
 
-led.fill(OFF)
+led.fill(IDLE)
 while true
   probe.poll
   sleep_ms 10
