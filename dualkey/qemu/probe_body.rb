@@ -15,7 +15,7 @@ session = PhomemoThermalPrinter::PrintSession.new(transport, clock: clock, sleep
 result = session.run(job)
 stat("printed")
 raise "print failed: #{result.error}" unless result.ok
-raise "DualKeyPairing.initiate is not linked" unless DualKeyPairing.respond_to?(:initiate)
+raise "DualKeyLink is not linked" unless DualKeyLink.respond_to?(:pair) && DualKeyLink.respond_to?(:exchange_mtu) && DualKeyLink.respond_to?(:mtu)
 puts "PROBE written #{transport.written} rows #{job.rows} blocks #{job.blocks}"
 puts lines
 puts "DUALKEY_PROBE_OK"
