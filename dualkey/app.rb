@@ -27,7 +27,6 @@ class LinkTransport < PhomemoThermalPrinter::Transport
     sleep_ms(PAIR_WAIT_MS) if pair_rc == 0
     mtu_rc = DualKeyLink.exchange_mtu(@handle)
     sleep_ms(MTU_WAIT_MS) if mtu_rc == 0
-    puts "LINK pair=#{pair_rc} mtu_rc=#{mtu_rc} mtu=#{DualKeyLink.mtu(@handle)}"
     super
   end
 
@@ -102,7 +101,7 @@ lit_print = lambda do |name, color, snap|
   begin
     result = print_lines.call(snap.to_lines)
     outcome = result.ok ? "OK" : result.error.to_s.upcase
-    puts "PRINT #{name} #{outcome} #{result.warnings.inspect} #{result.job.inspect} #{result.notify.inspect}"
+    puts "PRINT #{name} #{outcome}"
   rescue Exception => e
     outcome = "RAISED #{e.class}"
     puts "PRINT #{name} #{outcome} #{e.message}"
