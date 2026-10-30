@@ -12,10 +12,7 @@ class Clock
 end
 
 class Sleeper
-  attr_writer :probe
-
   def sleep_ms(ms)
-    @probe.sample if @probe
     Kernel.sleep_ms(ms)
   end
 end
@@ -96,7 +93,6 @@ end
 probe = DebugProbe.new
 probe.gauge("LAST PRINT") { outcome }
 probe.gauge("TASKS") { Task.list.size }
-sleeper.probe = probe
 probe.watch(:key1) { key1.pressed? }
 probe.watch(:key2) { key2.pressed? }
 
