@@ -63,15 +63,6 @@ key1 = Key.new(17)
 key2 = Key.new(0)
 outcome = nil
 
-reap_tasks = lambda do
-  tasks = Task.list
-  i = 0
-  while i < tasks.size
-    tasks[i].close if tasks[i].status == :DORMANT
-    i += 1
-  end
-end
-
 print_lines = lambda do |lines|
   job = PhomemoThermalPrinter::Job.new(TextCanvas.new(lines), density: 4, feed: 3)
   transport = PhomemoThermalPrinter::Transport.new if transport.nil?
@@ -98,7 +89,6 @@ lit_print = lambda do |name, color, snap|
     puts "PRINT #{name} #{outcome} #{e.message}"
   ensure
     transport.disconnect if transport
-    reap_tasks.call
     GC.start
     probe.sample
     led.fill(OFF)

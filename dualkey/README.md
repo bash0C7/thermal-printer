@@ -25,11 +25,10 @@ mise exec ruby@4.0.5 -- rake dualkey:wipe         # storage を消す。シェ�
 
 - `deploy_app` は `APP=<path>` で別のスクリプトを転送します。
 - 基板は USB の製品名 `USB JTAG/serial debug unit` から探し、`ESPPORT=` で指定できます。PSRAM があるチップには書きません。
-- `qemu_check` は QEMU（`esp_develop_9.2.2_20250817`）を `build/dualkey/qemu/` に取得します。QEMU には Bluetooth コントローラーがないため、BLE を使う経路は実機で確認します。
+- `qemu_check` は QEMU（`esp_develop_9.2.2_20250817`）を `build/dualkey/qemu/` に取得します。QEMU には Bluetooth コントローラーがないため、BLE を使う経路は実機で確認します。ホストの負荷が高いと QEMU のシェル初期化が 900 秒を超え、`qemu_check` が FAIL になります。負荷を下げて再実行します。
 - `rake test:ruby` の `SUITE=probe`、`SUITE=canvas` で 2 つの gem のテストを実行します。
 
 ## メモリ
 
 - heap は、QEMU の確認用が 190 KB、ボード用が 206 KB です（`DK_HEAP_KB`、`DK_BOARD_HEAP_KB`）。
 - アプリ開始時の空きは約 45 KB です。BLE の初期化と印字のあとは約 34 KB で安定します。
-- 終了した BLE 走査の `Task` は dormant のまま残るため、`app.rb` が印字のたびに `Task#close` で回収します。
