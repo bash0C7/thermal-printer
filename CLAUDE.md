@@ -30,7 +30,7 @@ Phomemo T02 感熱プリンターに、Mac から印字する道具。Mac アプ
 
 `dualkey/` は、Chain DualKey のボタンでデバッグ情報を T02 に印字するアプリと、その firmware の構成。手順とメモリの数値は `dualkey/README.md`。
 
-- firmware は `rake dualkey:qemu_check` の合格後だけ `rake dualkey:flash` で焼く。合格の記録は firmware の入力（`dualkey/firmware`、`dualkey/build_config`、3 つの gem の `mrblib`）の内容で照合する。
+- firmware は `rake dualkey:qemu_check` の合格後だけ `rake dualkey:flash` で焼く。合格の記録は firmware の入力（`dualkey/firmware`、`dualkey/build_config`、`dualkey/mrbgems`、3 つの gem の `mrblib`）の内容で照合する。
 - `app.rb` は firmware に入らない。`rake dualkey:deploy_app` で何度でも転送してよい。
 - 実機の印字は、これまでと同じく毎回ユーザーの許可を得る。プリンターが OFF のときは、押下から `NOT_FOUND` までの経路で確認する。
 
