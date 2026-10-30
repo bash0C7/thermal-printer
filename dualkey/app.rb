@@ -87,7 +87,7 @@ key2 = Key.new(0)
 outcome = nil
 
 print_lines = lambda do |lines|
-  job = PhomemoThermalPrinter::Job.new(TextCanvas.new(lines), density: 4, feed: 3)
+  job = PhomemoThermalPrinter::Job.new(TextCanvas.new([""] + lines + ["", ""]), density: 4, feed: 3)
   transport = LinkTransport.new if transport.nil?
   session = PhomemoThermalPrinter::PrintSession.new(transport, clock: clock, sleeper: sleeper)
   session.run(job)
