@@ -23,6 +23,7 @@ end
 class LinkTransport < PhomemoThermalPrinter::Transport
   PAIR_WAIT_MS = 3000
   MTU_WAIT_MS = 500
+  DISCONNECT_WAIT_MS = 500
 
   def subscribe(settle_ms)
     pair_rc = DualKeyLink.pair(@handle)
@@ -30,6 +31,14 @@ class LinkTransport < PhomemoThermalPrinter::Transport
     mtu_rc = DualKeyLink.exchange_mtu(@handle)
     sleep_ms(MTU_WAIT_MS) if mtu_rc == 0
     puts "LINK pair=#{pair_rc} mtu_rc=#{mtu_rc} mtu=#{DualKeyLink.mtu(@handle)}"
+    super
+  end
+
+  def disconnect
+    if @handle
+      DualKeyLink.disconnect(@handle)
+      sleep_ms(DISCONNECT_WAIT_MS)
+    end
     super
   end
 end
