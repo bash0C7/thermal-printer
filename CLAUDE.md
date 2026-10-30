@@ -26,6 +26,14 @@ Phomemo T02 感熱プリンターに、Mac から印字する道具。Mac アプ
 - README.md と CLAUDE.md には、最新のスナップショットだけを書く。
 - 画面、クリップボード、プリンターに触る操作（UI テスト、実機印字）は、実行前にユーザーへ、内容、実行する時刻、影響、止め方を伝え、返事を受けてから実行する。許可は、伝えたその 1 回にだけ効く。再現確認や再印字も、新しい印字として伝える。ユーザーが操作している最中は、UI テストを走らせない。
 
+## DualKey（ESP32-S3）
+
+`dualkey/` は、Chain DualKey のボタンでデバッグ情報を T02 に印字するアプリと、その firmware の構成。手順とメモリの数値は `dualkey/README.md`。
+
+- firmware は `rake dualkey:qemu_check` の合格後だけ `rake dualkey:flash` で焼く。合格の記録は firmware の入力（`dualkey/firmware`、`dualkey/build_config`、3 つの gem の `mrblib`）の内容で照合する。
+- `app.rb` は firmware に入らない。`rake dualkey:deploy_app` で何度でも転送してよい。
+- 実機の印字は、これまでと同じく毎回ユーザーの許可を得る。プリンターが OFF のときは、押下から `NOT_FOUND` までの経路で確認する。
+
 ## テスト戦略
 
 テストは単体、結合、E2E の 3 層に置く。gem の単体テストは gem repo にある。

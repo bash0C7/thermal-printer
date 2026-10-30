@@ -19,5 +19,8 @@ MRuby::Build.new("host-picotest") do |conf|
   conf.gembox "core"
   conf.gembox "stdlib"
   conf.gem core: 'picoruby-bin-picoruby'
+  conf.gem core: 'picoruby-vram'
+  conf.gem core: 'picoruby-bdffont'
+  conf.gem core: 'picoruby-terminus'
   conf.gem core: 'picoruby-picotest'
 end

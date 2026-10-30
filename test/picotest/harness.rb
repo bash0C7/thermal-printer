@@ -11,10 +11,21 @@ module PicotestHarness
 
   GEM_LOAD_FILES = [*GEM_MRBLIB, FAKE_TRANSPORT]
 
+  PROBE_GEM_DIR = File.expand_path("../picoruby-debug-probe", REPO_ROOT)
+  CANVAS_GEM_DIR = File.expand_path("../picoruby-text-canvas", REPO_ROOT)
+
   SUITES = {
     "cli" => {
       dir: File.join(REPO_ROOT, "test", "cli"),
       load_files: lambda { [*GEM_LOAD_FILES, CLI_RB] },
+    },
+    "probe" => {
+      dir: File.join(PROBE_GEM_DIR, "test"),
+      load_files: lambda { Dir[File.join(PROBE_GEM_DIR, "mrblib", "**", "*.rb")].sort },
+    },
+    "canvas" => {
+      dir: File.join(CANVAS_GEM_DIR, "test"),
+      load_files: lambda { [*GEM_LOAD_FILES, *Dir[File.join(CANVAS_GEM_DIR, "mrblib", "**", "*.rb")].sort] },
     },
   }.freeze
 
