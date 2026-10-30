@@ -53,7 +53,7 @@ end
 
 RED = [255, 0, 0]
 BLUE = [0, 0, 255]
-OFF = [0, 0, 0]
+IDLE = [0, 32, 0]
 
 clock = Clock.new
 sleeper = Sleeper.new
@@ -91,7 +91,7 @@ lit_print = lambda do |name, color, snap|
     transport.disconnect if transport
     GC.start
     probe.sample
-    led.fill(OFF)
+    led.fill(IDLE)
   end
 end
 
@@ -99,7 +99,7 @@ probe.on(:key1) { |snap| lit_print.call("key1", RED, snap) }
 probe.on(:key2) { |snap| lit_print.call("key2", BLUE, snap) }
 probe.on(:error) { |e| puts "ERROR #{e.class} #{e.message}" }
 
-led.fill(OFF)
+led.fill(IDLE)
 while true
   probe.poll
   sleep_ms 10
