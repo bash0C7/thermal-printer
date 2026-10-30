@@ -67,4 +67,5 @@ MRuby::CrossBuild.new('esp32-picoruby') do |conf|
   conf.gem core: "picoruby-terminus"
   conf.gem gemdir: "#{ENV.fetch("THERMAL_PRINTER_ROOT")}/../picoruby-debug-probe"
   conf.gem gemdir: "#{ENV.fetch("THERMAL_PRINTER_ROOT")}/../picoruby-text-canvas"
+  conf.gem gemdir: "#{ENV.fetch("THERMAL_PRINTER_ROOT")}/dualkey/mrbgems/dualkey-pairing"
 end

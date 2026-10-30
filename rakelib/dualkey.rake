@@ -293,6 +293,7 @@ end
 
 def dk_tree_digest
   files = Dir[File.join(DK_ROOT, "firmware", "*"), File.join(DK_ROOT, "build_config", "*"),
+              File.join(DK_ROOT, "mrbgems", "**", "*"),
               File.join(ROOT, "..", "picoruby-debug-probe", "mrblib", "**", "*.rb"),
               File.join(ROOT, "..", "picoruby-text-canvas", "mrblib", "**", "*.rb"),
               File.join(GEM_DIR, "mrblib", "**", "*.rb")].select { |f| File.file?(f) }.sort

@@ -20,6 +20,17 @@ class Sleeper
   end
 end
 
+class PairingTransport < PhomemoThermalPrinter::Transport
+  PAIR_WAIT_MS = 3000
+
+  def subscribe(settle_ms)
+    rc = DualKeyPairing.initiate(@handle)
+    puts "PAIR rc=#{rc}"
+    sleep_ms(PAIR_WAIT_MS) if rc == 0
+    super
+  end
+end
+
 class Key
   def initialize(pin)
     @gpio = GPIO.new(pin, GPIO::IN | GPIO::PULL_UP)
@@ -65,7 +76,7 @@ outcome = nil
 
 print_lines = lambda do |lines|
   job = PhomemoThermalPrinter::Job.new(TextCanvas.new(lines), density: 4, feed: 3)
-  transport = PhomemoThermalPrinter::Transport.new if transport.nil?
+  transport = PairingTransport.new if transport.nil?
   session = PhomemoThermalPrinter::PrintSession.new(transport, clock: clock, sleeper: sleeper)
   session.run(job)
 end
