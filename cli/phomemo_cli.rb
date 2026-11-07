@@ -421,4 +421,113 @@ module PhomemoCLI
       out
     end
   end
+
+  class Holder
+    POLL_MS = 20
+    RETRY_MS = 5000
+    LOOP_TIMEOUT_MS = 86_400_000
+
+    def initialize(prefix, transport_factory:, density: 4, feed: Options::DEFAULT_FEED, clock: nil, sleeper: nil)
+      @job_path = "#{prefix}job.pbm"
+      @result_path = "#{prefix}result.json"
+      @close_path = "#{prefix}close"
+      @state_path = "#{prefix}state"
+      @factory = transport_factory
+      @density = density
+      @feed = feed
+      @clock = clock || SystemClock.new
+      @sleeper = sleeper || SystemSleeper.new
+      @transport = nil
+      @linked = false
+      @next_attempt_ms = nil
+      @state = nil
+    end
+
+    def run
+      while step
+        @sleeper.sleep_ms(POLL_MS)
+      end
+      "closed"
+    end
+
+    def step
+      return close if File.exist?(@close_path)
+      if File.exist?(@job_path)
+        print_job
+      elsif @linked
+        notice_loss
+      elsif @next_attempt_ms.nil? || @clock.now_ms >= @next_attempt_ms
+        attempt_link
+      end
+      true
+    end
+
+    private
+
+    def close
+      @transport.disconnect if @transport
+      @linked = false
+      File.delete(@close_path)
+      write_state("closed")
+      false
+    end
+
+    def notice_loss
+      return if @transport.poll_notifications && @transport.linked?
+      @linked = false
+      @next_attempt_ms = nil
+      write_state("unlinked")
+    end
+
+    def attempt_link
+      fresh_transport
+      result = PhomemoThermalPrinter::StatusSession.new(@transport, clock: @clock, sleeper: @sleeper, hold: true).query
+      settle(result.ok)
+    end
+
+    def print_job
+      fresh_transport unless @linked
+      result = held_print
+      File.delete(@job_path)
+      ResultFile.write(@result_path, result.to_h(exit_code: PhomemoCLI.exit_code_for(result.error)))
+      settle(@transport.linked?)
+    end
+
+    def held_print
+      io = File.open(@job_path, "r")
+      begin
+        reader = PhomemoThermalPrinter::PbmReader.new(io)
+        unless reader.complete_in?(File.size(@job_path))
+          raise PhomemoThermalPrinter::FormatError, "truncated raster"
+        end
+        job = PhomemoThermalPrinter::Job.new(reader, density: @density, feed: @feed)
+        PhomemoThermalPrinter::PrintSession.new(
+          @transport, clock: @clock, sleeper: @sleeper, density: @density, hold: true
+        ).run(job)
+      rescue PhomemoThermalPrinter::FormatError => e
+        PhomemoThermalPrinter::Result.failure("print", "invalid_input", hint: "#{@job_path}: #{e.message}")
+      ensure
+        io.close
+      end
+    end
+
+    def fresh_transport
+      @transport.disconnect if @transport
+      @transport = @factory.call
+    end
+
+    def settle(linked)
+      @linked = linked
+      @next_attempt_ms = linked ? nil : @clock.now_ms + RETRY_MS
+      write_state(linked ? "linked" : "unlinked")
+    end
+
+    def write_state(state)
+      return if state == @state
+      @state = state
+      tmp = "#{@state_path}.tmp"
+      File.open(tmp, "w") { |f| f.write(state) }
+      File.rename(tmp, @state_path)
+    end
+  end
 end

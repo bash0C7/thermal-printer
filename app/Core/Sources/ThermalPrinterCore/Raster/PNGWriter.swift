@@ -29,6 +29,10 @@ public enum PNGWriter {
 
     public static func data(_ bitmap: Bitmap1) throws -> Data {
         guard let image = bitmap.cgImage() else { throw Failure.emptyBitmap }
+        return try data(image)
+    }
+
+    public static func data(_ image: CGImage) throws -> Data {
         let output = NSMutableData()
         guard let destination = CGImageDestinationCreateWithData(output, UTType.png.identifier as CFString, 1, nil)
         else { throw Failure.encodeFailed }

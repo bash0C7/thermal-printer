@@ -18,11 +18,68 @@ enum VMPrinterError: Error, LocalizedError {
 final class VMPrinter: @unchecked Sendable {
     static let shared = VMPrinter()
 
+    static let heldJobTimeout = Duration.seconds(90)
+
     private let queue = DispatchQueue(label: "com.bash0c7.thermalprinter.vm")
     private var vm: UnsafeMutableRawPointer?
     private let directory = FileManager.default.temporaryDirectory
+    private let holdLock = NSLock()
+    private var wantsHold = false
 
     private init() {}
+
+    private var holdPrefix: String { directory.appending(path: "cheki-").path }
+    private func holdFile(_ name: String) -> URL { URL(fileURLWithPath: holdPrefix + name) }
+
+    var isHeldLinked: Bool {
+        (try? String(contentsOf: holdFile("state"), encoding: .utf8)) == "linked"
+    }
+
+    func startHolding(density: Int) {
+        setWantsHold(true)
+        queue.async {
+            guard self.holdLock.withLock({ self.wantsHold }) else { return }
+            for name in ["close", "job.pbm", "result.json", "state"] {
+                try? FileManager.default.removeItem(at: self.holdFile(name))
+            }
+            do {
+                let handle = try self.openIfNeeded()
+                let argument = "\(self.holdPrefix)\t\(density)"
+                let out = "hold".withCString { m in argument.withCString { a in vm_call(handle, m, a) } }
+                NSLog("[ThermalPrinterPhone] hold ended: %@", out.map { String(cString: $0) } ?? "")
+                if let out { free(out) }
+            } catch {
+                NSLog("[ThermalPrinterPhone] hold failed: %@", error.localizedDescription)
+            }
+        }
+    }
+
+    func stopHolding() {
+        setWantsHold(false)
+        FileManager.default.createFile(atPath: holdFile("close").path, contents: Data())
+    }
+
+    func printHeld(_ bitmap: Bitmap1) async throws -> PrintResult {
+        let result = holdFile("result.json")
+        let job = holdFile("job.pbm")
+        let staged = holdFile("job.pbm.tmp")
+        try? FileManager.default.removeItem(at: result)
+        try PBMWriter.data(bitmap).write(to: staged)
+        try FileManager.default.moveItem(at: staged, to: job)
+        let deadline = ContinuousClock.now + Self.heldJobTimeout
+        while ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(50))
+            guard let data = try? Data(contentsOf: result) else { continue }
+            try? FileManager.default.removeItem(at: result)
+            return try JSONDecoder().decode(PrintResult.self, from: data)
+        }
+        try? FileManager.default.removeItem(at: job)
+        throw VMPrinterError.noResult("hold")
+    }
+
+    private func setWantsHold(_ value: Bool) {
+        holdLock.withLock { wantsHold = value }
+    }
 
     func warmUp() {
         queue.async {
