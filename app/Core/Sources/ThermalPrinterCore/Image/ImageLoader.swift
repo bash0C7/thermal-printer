@@ -69,16 +69,12 @@ public enum ImageLoader {
         return FloydSteinberg.dither(GrayImage(width: width, height: height, values: values))
     }
 
-    public static func portraitThreeByFour(from data: Data) throws -> CGImage {
+    public static func bitmapWithShortSideAcross(from data: Data) throws -> Bitmap1 {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil) else {
             throw ImageLoaderError.unreadable
         }
         let image = try uprightImage(source)
-        let width = min(image.width, image.height * 3 / 4)
-        let height = min(image.height, image.width * 4 / 3)
-        let rect = CGRect(x: (image.width - width) / 2, y: (image.height - height) / 2, width: width, height: height)
-        guard let cropped = image.cropping(to: rect) else { throw ImageLoaderError.renderFailed }
-        return cropped
+        return try bitmap(from: image, rotation: image.width > image.height ? .degrees90 : .degrees0)
     }
 
     public static func sampleImage() -> CGImage {

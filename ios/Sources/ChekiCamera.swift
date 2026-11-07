@@ -60,6 +60,9 @@ final class ChekiCamera: NSObject, AVCapturePhotoCaptureDelegate, @unchecked Sen
                     return
                 }
                 if let angle, connection.isVideoRotationAngleSupported(angle) { connection.videoRotationAngle = angle }
+                NSLog("[ThermalPrinterPhone] capture angle=%@ connection=%.0f mirrored=%d",
+                      angle.map { String(format: "%.0f", $0) } ?? "nil", connection.videoRotationAngle,
+                      connection.isVideoMirrored ? 1 : 0)
                 self.pending = continuation
                 self.output.capturePhoto(with: AVCapturePhotoSettings(), delegate: self)
             }
@@ -112,7 +115,7 @@ struct CameraPreview: UIViewRepresentable {
     func makeUIView(context: Context) -> PreviewView {
         let view = PreviewView()
         view.previewLayer.session = camera.session
-        view.previewLayer.videoGravity = .resizeAspectFill
+        view.previewLayer.videoGravity = .resizeAspect
         camera.attach(view.previewLayer)
         return view
     }

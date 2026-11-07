@@ -1,3 +1,4 @@
+import ImageIO
 import Observation
 import SwiftUI
 import ThermalPrinterCore
@@ -46,6 +47,7 @@ final class ChekiModel {
             isBusy = false
         }
         guard let data = await camera.capture() else { return }
+        Self.describe(data)
         let linked = VMPrinter.shared.isHeldLinked
         let shot: ChekiShot
         let png: Data
@@ -58,6 +60,7 @@ final class ChekiModel {
             NSLog("[ThermalPrinterPhone] shot failed: %@", error.localizedDescription)
             return
         }
+        NSLog("[ThermalPrinterPhone] shot rows=%ld", shot.photo.height)
         monochrome = UIImage(data: png)
         if linked {
             await PhotoSaver.save(data)
@@ -95,6 +98,19 @@ final class ChekiModel {
         return true
     }
 
+    private static func describe(_ data: Data) {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+            let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
+        else {
+            NSLog("[ThermalPrinterPhone] photo unreadable bytes=%ld", data.count)
+            return
+        }
+        NSLog("[ThermalPrinterPhone] photo type=%@ pixels=%@x%@ orientation=%@",
+              (CGImageSourceGetType(source) as String?) ?? "-",
+              "\(properties[kCGImagePropertyPixelWidth] ?? "-")", "\(properties[kCGImagePropertyPixelHeight] ?? "-")",
+              "\(properties[kCGImagePropertyOrientation] ?? "-")")
+    }
+
     private func pause() {
         camera.stop()
         VMPrinter.shared.stopHolding()
@@ -106,24 +122,23 @@ struct ChekiView: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
-            ZStack {
-                CameraPreview(camera: model.camera)
-                if let image = model.monochrome {
-                    Color.white
-                    Image(uiImage: image)
-                        .resizable()
-                        .interpolation(.none)
-                        .mask(alignment: .top) {
-                            GeometryReader { geometry in
-                                Rectangle().frame(height: geometry.size.height * model.revealedFraction)
-                            }
+            Color.black
+            CameraPreview(camera: model.camera)
+            if let image = model.monochrome {
+                Image(uiImage: image)
+                    .resizable()
+                    .interpolation(.none)
+                    .scaledToFit()
+                    .mask(alignment: .top) {
+                        GeometryReader { geometry in
+                            Rectangle().frame(height: geometry.size.height * model.revealedFraction)
                         }
-                        .accessibilityIdentifier("chekiMonochrome")
-                }
+                    }
+                    .background(Color.white)
+                    .accessibilityIdentifier("chekiMonochrome")
             }
-            .aspectRatio(3.0 / 4.0, contentMode: .fit)
         }
+        .ignoresSafeArea()
         .contentShape(Rectangle())
         .onTapGesture { Task { await model.shoot() } }
         .accessibilityIdentifier("chekiView")

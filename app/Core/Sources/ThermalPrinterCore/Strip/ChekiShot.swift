@@ -9,7 +9,7 @@ public struct ChekiShot: Sendable {
     public let strip: Bitmap1
 
     public init(photoData: Data) throws {
-        let photo = try ImageLoader.bitmap(from: ImageLoader.portraitThreeByFour(from: photoData))
+        let photo = try ImageLoader.bitmapWithShortSideAcross(from: photoData)
         var strip = Bitmap1(height: photo.height + StripComposer.defaultFeedRows)
         strip.draw(photo, columns: 0..<Bitmap1.contentWidth, toX: Bitmap1.contentLeft, y: 0)
         self.photo = photo
