@@ -50,7 +50,7 @@ class ResultFileTest < Picotest::Test
 
   def test_all_fixtures_share_the_same_keys
     keys = read_fixture("result_print_ok.json").keys.sort
-    assert_equal ["completion", "elapsed_ms", "error", "exit_code", "hint", "job", "mode", "notify", "ok", "status", "version", "warnings"], keys
+    assert_equal ["completion", "detail", "elapsed_ms", "error", "exit_code", "hint", "job", "mode", "notify", "ok", "status", "version", "warnings"], keys
     assert_equal keys, read_fixture("result_status_ok.json").keys.sort
     assert_equal keys, read_fixture("result_not_found.json").keys.sort
   end

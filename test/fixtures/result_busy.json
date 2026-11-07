@@ -3,6 +3,7 @@
   "mode": "status",
   "ok": false,
   "error": "busy",
+  "detail": null,
   "exit_code": 12,
   "hint": "Another phomemo-print is running. Wait for it to finish.",
   "warnings": [],

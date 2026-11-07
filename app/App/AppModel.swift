@@ -359,7 +359,7 @@ final class AppModel {
 
     static func banner(for result: PrintResult, lengthText: String) -> Banner {
         guard result.ok else {
-            return Banner(kind: .failure, text: PrinterStatusText.message(for: result.error ?? .unknown))
+            return Banner(kind: .failure, text: PrinterStatusText.message(for: result.error ?? .unknown, detail: result.detail))
         }
         if result.warnings.isEmpty {
             return Banner(kind: .success, text: "印刷しました（\(lengthText)）")

@@ -13,6 +13,30 @@ func everyErrorKindHasAJapaneseMessage(kind: PrintResult.ErrorKind) {
     #expect(m.contains("公式アプリ"))
 }
 
+@Test func aRemovedPairingTellsToForgetTheT02AndShowsTheDetailCode() {
+    let m = PrinterStatusText.message(for: .notFound, detail: "pairing_info_removed")
+    #expect(m.contains("ペアリング情報"))
+    #expect(m.contains("登録を解除"))
+    #expect(m.contains("pairing_info_removed"))
+}
+
+@Test(arguments: ["pairing_info_removed", "auth_failed", "connect_timeout", "link_dropped"])
+func everyConnectFailureHasItsOwnMessageWithItsCode(detail: String) {
+    let m = PrinterStatusText.message(for: .notFound, detail: detail)
+    #expect(m != PrinterStatusText.message(for: .notFound))
+    #expect(m.contains("見つかりましたが"))
+    #expect(m.contains(detail))
+}
+
+@Test(arguments: [nil, "name_not_seen", "something_new"] as [String?])
+func withoutAConnectFailureNotFoundKeepsTheWakeUpMessage(detail: String?) {
+    #expect(PrinterStatusText.message(for: .notFound, detail: detail) == PrinterStatusText.message(for: .notFound))
+}
+
+@Test func detailDoesNotChangeTheMessageOfOtherErrors() {
+    #expect(PrinterStatusText.message(for: .busy, detail: "link_dropped") == PrinterStatusText.message(for: .busy))
+}
+
 @Test func paperCoverHeatAndBatteryMessagesNameTheirCause() {
     #expect(PrinterStatusText.message(for: .paperOut).contains("紙"))
     #expect(PrinterStatusText.message(for: .coverOpen).contains("カバー"))

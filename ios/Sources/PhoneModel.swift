@@ -192,7 +192,7 @@ final class PhoneModel {
             let result = try await VMPrinter.shared.print(bitmap, density: Self.density)
             banner = result.ok
                 ? "印刷しました（\(length)）"
-                : PrinterStatusText.message(for: result.error ?? .unknown)
+                : PrinterStatusText.message(for: result.error ?? .unknown, detail: result.detail)
         } catch {
             banner = error.localizedDescription
         }

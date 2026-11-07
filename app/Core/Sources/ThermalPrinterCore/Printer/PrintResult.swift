@@ -99,6 +99,7 @@ public struct PrintResult: Codable, Equatable, Sendable {
     public var error: ErrorKind?
     public var exitCode: Int
     public var hint: String?
+    public var detail: String?
     public var warnings: [String]
     public var status: Status?
     public var job: Job?
@@ -107,7 +108,7 @@ public struct PrintResult: Codable, Equatable, Sendable {
     public var elapsedMs: Int
 
     enum CodingKeys: String, CodingKey {
-        case version, mode, ok, error, hint, warnings, status, job, notify, completion
+        case version, mode, ok, error, hint, detail, warnings, status, job, notify, completion
         case exitCode = "exit_code"
         case elapsedMs = "elapsed_ms"
     }

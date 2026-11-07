@@ -38,6 +38,12 @@ func everyRubyResultFixtureDecodes(name: String) throws {
     _ = try decodePrinterFixture(name)
 }
 
+@Test func detailIsReadWhenPresentAndNilWhenAbsent() throws {
+    let present = #"{"version":1,"mode":"status","ok":false,"error":"not_found","exit_code":10,"hint":null,"detail":"pairing_info_removed","warnings":[],"status":null,"job":null,"notify":null,"completion":null,"elapsed_ms":10011}"#
+    #expect(try JSONDecoder().decode(PrintResult.self, from: Data(present.utf8)).detail == "pairing_info_removed")
+    #expect(try JSONDecoder().decode(PrintResult.self, from: Data(printerBusyJSON.utf8)).detail == nil)
+}
+
 @Test func printOkFixtureCarriesTheJobAndTheStatus() throws {
     let r = try decodePrinterFixture("result_print_ok")
     #expect(r.mode == .print)
@@ -73,6 +79,7 @@ func everyRubyResultFixtureDecodes(name: String) throws {
     #expect(r.exitCode == 10)
     #expect(r.status == nil)
     #expect(r.hint?.isEmpty == false)
+    #expect(r.detail == "name_not_seen")
 }
 
 @Test func busyResultDecodesAsBusy() throws {
