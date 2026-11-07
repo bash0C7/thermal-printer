@@ -1,4 +1,3 @@
-import ImageIO
 import Observation
 import SwiftUI
 import ThermalPrinterCore
@@ -47,7 +46,6 @@ final class ChekiModel {
             isBusy = false
         }
         guard let data = await camera.capture() else { return }
-        Self.describe(data)
         let linked = VMPrinter.shared.isHeldLinked
         let shot: ChekiShot
         let png: Data
@@ -60,7 +58,6 @@ final class ChekiModel {
             NSLog("[ThermalPrinterPhone] shot failed: %@", error.localizedDescription)
             return
         }
-        NSLog("[ThermalPrinterPhone] shot rows=%ld", shot.photo.height)
         monochrome = UIImage(data: png)
         if linked {
             await PhotoSaver.save(data)
@@ -96,19 +93,6 @@ final class ChekiModel {
         reveal.cancel()
         revealedFraction = 1
         return true
-    }
-
-    private static func describe(_ data: Data) {
-        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
-            let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
-        else {
-            NSLog("[ThermalPrinterPhone] photo unreadable bytes=%ld", data.count)
-            return
-        }
-        NSLog("[ThermalPrinterPhone] photo type=%@ pixels=%@x%@ orientation=%@",
-              (CGImageSourceGetType(source) as String?) ?? "-",
-              "\(properties[kCGImagePropertyPixelWidth] ?? "-")", "\(properties[kCGImagePropertyPixelHeight] ?? "-")",
-              "\(properties[kCGImagePropertyOrientation] ?? "-")")
     }
 
     private func pause() {
