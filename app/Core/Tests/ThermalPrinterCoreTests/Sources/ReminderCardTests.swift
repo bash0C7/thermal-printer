@@ -117,6 +117,11 @@ private struct FakeStore: RemindersStore {
         #expect(TodayFilter.reminders(items, now: morning, calendar: tokyo).count == 2)
     }
 
+    @Test func aDateOnlyReminderDueTodayIsKeptEvenThoughItsDueIsTheStartOfToday() {
+        let items = [item("日付のみ", due: date(2026, 10, 24), dueHasTime: false)]
+        #expect(TodayFilter.reminders(items, now: morning, calendar: tokyo).map(\.title) == ["日付のみ"])
+    }
+
     @Test func noListSelectionKeepsEveryReminder() {
         let items = [item("a", list: "仕事", due: nil), item("b", list: "買い物", due: nil)]
         #expect(TodayFilter.reminders(items, inList: nil) == items)

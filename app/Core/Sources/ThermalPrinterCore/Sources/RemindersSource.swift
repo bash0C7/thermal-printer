@@ -51,7 +51,9 @@ public final class EventKitRemindersStore: RemindersStore, @unchecked Sendable {
     }
 
     public func incompleteReminders(dueFrom start: Date) async -> [ReminderItem] {
-        let predicate = store.predicateForIncompleteReminders(withDueDateStarting: start, ending: nil, calendars: nil)
+        let exclusiveBoundaryIncludingStart = start.addingTimeInterval(-1)
+        let predicate = store.predicateForIncompleteReminders(
+            withDueDateStarting: exclusiveBoundaryIncludingStart, ending: nil, calendars: nil)
         return await withCheckedContinuation { continuation in
             _ = store.fetchReminders(matching: predicate) { reminders in
                 continuation.resume(returning: (reminders ?? []).map(EventKitRemindersStore.item))
