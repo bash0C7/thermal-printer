@@ -79,7 +79,7 @@ struct ChekiShotTests {
 
     @Test func rowsAreRevealedAtThePrintSpeedAfterTheLead() {
         let rows = ChekiShot.revealedRows(elapsedMs: ChekiShot.leadMs + 2000, totalRows: 491, finished: false)
-        #expect(rows == 2 * ChekiShot.rowsPerSecond)
+        #expect(rows == 72)
     }
 
     @Test func theLastRowWaitsForTheResult() {

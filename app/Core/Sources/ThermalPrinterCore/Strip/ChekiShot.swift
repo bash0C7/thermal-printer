@@ -2,7 +2,7 @@ import CoreGraphics
 import Foundation
 
 public struct ChekiShot: Sendable {
-    public static let rowsPerSecond = 48
+    public static let rowsPerSecond = 36
     public static let leadMs = 600
 
     public let photo: Bitmap1
