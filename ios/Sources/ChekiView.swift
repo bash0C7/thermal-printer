@@ -27,7 +27,6 @@ final class ChekiModel {
     var isClosing: Bool { !isActive && openHolds > 0 }
 
     func toggle() {
-        NSLog("[ThermalPrinterPhone] toggle cheki=%d open_holds=%ld busy=%d", isActive ? 0 : 1, openHolds, isBusy ? 1 : 0)
         if isActive {
             pause()
             isActive = false
@@ -171,7 +170,6 @@ struct ChekiView: View {
         .overlay(alignment: .top) { linkBadge }
         .contentShape(Rectangle())
         .onTapGesture { Task { await model.shoot() } }
-        .onAppear { NSLog("[ThermalPrinterPhone] cheki view appeared") }
         .accessibilityIdentifier("chekiView")
     }
 

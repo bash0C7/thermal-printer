@@ -10,11 +10,16 @@ final class ChekiCamera: NSObject, AVCapturePhotoCaptureDelegate, @unchecked Sen
     private let queue = DispatchQueue(label: "com.bash0c7.thermalprinter.camera")
     private var device: AVCaptureDevice?
     private var pending: CheckedContinuation<Data?, Never>?
+    @MainActor private(set) lazy var preview: CameraPreviewView = {
+        let view = CameraPreviewView()
+        view.previewLayer.session = session
+        view.previewLayer.videoGravity = .resizeAspect
+        return view
+    }()
     @MainActor private var coordinator: AVCaptureDevice.RotationCoordinator?
-    @MainActor private var previewLayer: AVCaptureVideoPreviewLayer?
-    @MainActor private var frontCamera: AVCaptureDevice?
 
-    func start() {
+    @MainActor func start() {
+        _ = preview
         Task {
             guard await AVCaptureDevice.requestAccess(for: .video) else {
                 NSLog("[ThermalPrinterPhone] camera access denied")
@@ -24,10 +29,7 @@ final class ChekiCamera: NSObject, AVCapturePhotoCaptureDelegate, @unchecked Sen
                 if self.device == nil { self.configure() }
                 self.session.startRunning()
                 let camera = self.device
-                Task { @MainActor in
-                    self.frontCamera = camera
-                    self.linkRotation()
-                }
+                Task { @MainActor in self.linkRotation(camera) }
             }
         }
     }
@@ -36,17 +38,12 @@ final class ChekiCamera: NSObject, AVCapturePhotoCaptureDelegate, @unchecked Sen
         queue.async { self.session.stopRunning() }
     }
 
-    @MainActor func attach(_ layer: AVCaptureVideoPreviewLayer) {
-        previewLayer = layer
-        coordinator = nil
-        linkRotation()
-    }
-
-    @MainActor private func linkRotation() {
-        guard coordinator == nil, let previewLayer, let frontCamera else { return }
-        let coordinator = AVCaptureDevice.RotationCoordinator(device: frontCamera, previewLayer: previewLayer)
+    @MainActor private func linkRotation(_ camera: AVCaptureDevice?) {
+        guard coordinator == nil, let camera else { return }
+        let layer = preview.previewLayer
+        let coordinator = AVCaptureDevice.RotationCoordinator(device: camera, previewLayer: layer)
         self.coordinator = coordinator
-        previewLayer.connection?.videoRotationAngle = coordinator.videoRotationAngleForHorizonLevelPreview
+        layer.connection?.videoRotationAngle = coordinator.videoRotationAngleForHorizonLevelPreview
     }
 
     @MainActor func capture() async -> Data? {
@@ -101,23 +98,17 @@ final class ChekiCamera: NSObject, AVCapturePhotoCaptureDelegate, @unchecked Sen
     }
 }
 
+final class CameraPreviewView: UIView {
+    override class var layerClass: AnyClass { AVCaptureVideoPreviewLayer.self }
+    var previewLayer: AVCaptureVideoPreviewLayer { layer as! AVCaptureVideoPreviewLayer }
+}
+
 struct CameraPreview: UIViewRepresentable {
     let camera: ChekiCamera
 
-    final class PreviewView: UIView {
-        override class var layerClass: AnyClass { AVCaptureVideoPreviewLayer.self }
-        var previewLayer: AVCaptureVideoPreviewLayer { layer as! AVCaptureVideoPreviewLayer }
-    }
+    func makeUIView(context: Context) -> CameraPreviewView { camera.preview }
 
-    func makeUIView(context: Context) -> PreviewView {
-        let view = PreviewView()
-        view.previewLayer.session = camera.session
-        view.previewLayer.videoGravity = .resizeAspect
-        camera.attach(view.previewLayer)
-        return view
-    }
-
-    func updateUIView(_ uiView: PreviewView, context: Context) {}
+    func updateUIView(_ uiView: CameraPreviewView, context: Context) {}
 }
 
 enum PhotoSaver {
