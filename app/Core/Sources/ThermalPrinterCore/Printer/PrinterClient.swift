@@ -136,7 +136,7 @@ public struct PrinterClient: Sendable {
             if result.ok, let status = result.status {
                 return PrinterStatusSnapshot(line: PrinterStatusText.titleBar(status, checkedAt: checkedAt))
             }
-            let detail = PrinterStatusText.message(for: result.error ?? .unknown)
+            let detail = PrinterStatusText.message(for: result.error ?? .unknown, detail: result.detail)
             return PrinterStatusSnapshot(line: unknown, detail: detail)
         } catch {
             return PrinterStatusSnapshot(line: unknown, detail: error.localizedDescription)

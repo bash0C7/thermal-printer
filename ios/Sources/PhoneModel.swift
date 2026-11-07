@@ -16,6 +16,7 @@ struct PhonePart: Identifiable, Equatable {
 final class PhoneModel {
     static let density = 4
     static let draftDebounce = Duration.milliseconds(350)
+    static let reminderListDefaultsKey = "reminderList"
 
     private(set) var parts: [PhonePart] = []
     private(set) var draft = DraftDocument(
@@ -23,9 +24,12 @@ final class PhoneModel {
     private(set) var isDigesting = false
     private(set) var preview: UIImage?
     private(set) var rows = 0
-    private(set) var reminders: [ReminderItem] = []
+    private(set) var allReminders: [ReminderItem] = []
+    private(set) var reminderLists: [String] = []
+    private(set) var reminderList = UserDefaults.standard.string(forKey: PhoneModel.reminderListDefaultsKey)
     private(set) var remindersMessage: String?
     private(set) var isPrinting = false
+    private(set) var pendingReminderKeys: Set<String> = []
     var banner: String?
 
     @ObservationIgnored private let summarizer = SummarizerSelector().summarizer
@@ -34,8 +38,9 @@ final class PhoneModel {
     @ObservationIgnored private var recomposeTask: Task<Void, Never>?
 
     var lengthText: String { LengthPolicy.lengthText(rows: rows) }
-    var canPrint: Bool { rows > 0 && !isPrinting }
+    var canPrint: Bool { rows > 0 && !isPrinting && pendingReminderKeys.isEmpty }
     var canDigest: Bool { !isDigesting && draft.canDigest }
+    var reminders: [ReminderItem] { TodayFilter.reminders(allReminders, inList: reminderList) }
 
     func edit(_ text: String) {
         draft.edit(text)
@@ -118,30 +123,62 @@ final class PhoneModel {
     }
 
     func isChecked(_ key: String) -> Bool {
-        parts.contains { $0.reminderKey == key }
+        pendingReminderKeys.contains(key) || parts.contains { $0.reminderKey == key }
     }
 
     func setReminder(_ item: ReminderItem, checked: Bool) {
         let key = item.key
-        if checked {
-            guard !isChecked(key) else { return }
-            add(.card(ReminderCard.make(item, now: Date())), reminderKey: key)
-        } else if let existing = parts.first(where: { $0.reminderKey == key }) {
-            remove(existing.id)
+        guard checked else {
+            pendingReminderKeys.remove(key)
+            if let existing = parts.first(where: { $0.reminderKey == key }) { remove(existing.id) }
+            return
+        }
+        guard !isChecked(key) else { return }
+        pendingReminderKeys.insert(key)
+        Task {
+            let card = await ReminderCard.make(item, now: Date(), summarizer: summarizer)
+            guard pendingReminderKeys.remove(key) != nil else { return }
+            add(.card(card), reminderKey: key)
         }
     }
 
     func loadReminders() async {
+        let source = RemindersSource(store: EventKitRemindersStore())
         do {
-            reminders = try await RemindersSource(store: EventKitRemindersStore()).todaysReminders()
-            remindersMessage = reminders.isEmpty ? "今日以降のリマインダーはありません" : nil
+            allReminders = try await source.todaysReminders()
+            reminderLists = try await source.lists()
+            if let reminderList, !reminderLists.contains(reminderList) { storeReminderList(nil) }
+            updateRemindersMessage()
         } catch RemindersSource.Failure.accessDenied {
-            reminders = []
+            clearReminders()
             remindersMessage = "リマインダーへのアクセスが許可されていません。設定アプリで許可してください"
         } catch {
-            reminders = []
+            clearReminders()
             remindersMessage = error.localizedDescription
         }
+    }
+
+    func selectReminderList(_ list: String?) {
+        storeReminderList(list)
+        updateRemindersMessage()
+    }
+
+    private func storeReminderList(_ list: String?) {
+        reminderList = list
+        UserDefaults.standard.set(list, forKey: Self.reminderListDefaultsKey)
+    }
+
+    private func clearReminders() {
+        allReminders = []
+        reminderLists = []
+    }
+
+    private func updateRemindersMessage() {
+        guard reminders.isEmpty else {
+            remindersMessage = nil
+            return
+        }
+        remindersMessage = reminderList == nil ? "今日以降のリマインダーはありません" : "このリストに今日以降のリマインダーはありません"
     }
 
     func printStrip() async {
@@ -155,7 +192,7 @@ final class PhoneModel {
             let result = try await VMPrinter.shared.print(bitmap, density: Self.density)
             banner = result.ok
                 ? "印刷しました（\(length)）"
-                : PrinterStatusText.message(for: result.error ?? .unknown)
+                : PrinterStatusText.message(for: result.error ?? .unknown, detail: result.detail)
         } catch {
             banner = error.localizedDescription
         }

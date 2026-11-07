@@ -4,6 +4,7 @@ import Foundation
 public protocol RemindersStore: Sendable {
     func requestAccess() async throws -> Bool
     func incompleteReminders(dueFrom start: Date) async -> [ReminderItem]
+    func listTitles() -> [String]
 }
 
 public struct RemindersSource: Sendable {
@@ -26,8 +27,17 @@ public struct RemindersSource: Sendable {
         return TodayFilter.reminders(fetched, now: now, calendar: calendar)
     }
 
-    public func todaysCards(now: Date = Date()) async throws -> [Card] {
-        try await todaysReminders(now: now).map { ReminderCard.make($0, now: now, calendar: calendar) }
+    public func lists() async throws -> [String] {
+        guard try await store.requestAccess() else { throw Failure.accessDenied }
+        return Array(Set(store.listTitles())).sorted()
+    }
+
+    public func todaysCards(now: Date = Date(), summarizer: any Summarizer) async throws -> [Card] {
+        var cards: [Card] = []
+        for item in try await todaysReminders(now: now) {
+            cards.append(await ReminderCard.make(item, now: now, calendar: calendar, summarizer: summarizer))
+        }
+        return cards
     }
 }
 
@@ -40,8 +50,14 @@ public final class EventKitRemindersStore: RemindersStore, @unchecked Sendable {
         try await store.requestFullAccessToReminders()
     }
 
+    public func listTitles() -> [String] {
+        store.calendars(for: .reminder).map(\.title)
+    }
+
     public func incompleteReminders(dueFrom start: Date) async -> [ReminderItem] {
-        let predicate = store.predicateForIncompleteReminders(withDueDateStarting: start, ending: nil, calendars: nil)
+        let exclusiveBoundaryIncludingStart = start.addingTimeInterval(-1)
+        let predicate = store.predicateForIncompleteReminders(
+            withDueDateStarting: exclusiveBoundaryIncludingStart, ending: nil, calendars: nil)
         return await withCheckedContinuation { continuation in
             _ = store.fetchReminders(matching: predicate) { reminders in
                 continuation.resume(returning: (reminders ?? []).map(EventKitRemindersStore.item))
@@ -57,7 +73,8 @@ public final class EventKitRemindersStore: RemindersStore, @unchecked Sendable {
             list: reminder.calendar.title,
             due: due,
             dueHasTime: components?.hour != nil,
-            notes: reminder.notes
+            notes: reminder.notes,
+            identifier: reminder.calendarItemIdentifier
         )
     }
 }

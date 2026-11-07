@@ -64,8 +64,8 @@ enum CardAntiGoal {
         #expect(!r.bitmap.blackPixels(in: qr).isEmpty)
     }
 
-    @Test func reminderCardHasNoQR() throws {
-        #expect(try renderer.render(CardFixture.card("reminder")).qrFrame == nil)
+    @Test func reminderCardHasTheQROfItsDeepLink() throws {
+        #expect(try renderer.render(CardFixture.card("reminder")).qrFrame != nil)
     }
 
     @Test(arguments: CardAntiGoal.all)

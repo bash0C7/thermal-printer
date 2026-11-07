@@ -67,7 +67,15 @@ bin/phomemo-print --dry-run [--png out.png] <file.pbm>
 | 30 | `print_failed` | プリンターが印字の失敗を返した |
 | 31 | `canceled` | プリンターが印字を取り消した |
 
-T02 が見つからないときは、電源ボタンを押して起こし、公式アプリの接続を切ります。
+T02 が見つからないときは、電源ボタンを押して起こし、公式アプリの接続を切ります。結果の JSON の `detail` に原因が入り、アプリはそれを日本語で表示します。
+
+| detail | 内容 |
+|---|---|
+| `name_not_seen` | スキャンで T02 の名前が一度も見えなかった |
+| `pairing_info_removed` | T02 が見つかったが、T02 がこの端末のペアリング情報を忘れていて接続を拒否した。この端末の Bluetooth 設定で T02 の登録を解除し、T02 の電源を入れ直す |
+| `auth_failed` | T02 が見つかったが、認証に失敗した。この端末の Bluetooth 設定で T02 の登録を解除する |
+| `connect_timeout` | T02 が見つかったが、接続が時間内に終わらなかった |
+| `link_dropped` | T02 が見つかったが、接続が成立する前に切れた |
 
 ## アプリ
 
@@ -78,7 +86,7 @@ mise exec ruby@4.0.5 -- rake app:install
 
 `app:build` が `build/app/stage/ThermalPrinter.app` を作ります。`app:install` が `~/Applications/ThermalPrinter.app` に置きます。アプリは picoruby、BLE の dylib、CLI のソースを同梱します。
 
-テキストボックスに文章を書くと markdown として組まれます。画像を貼ると `[Image #1]` と出て、その位置に画像が組まれます。「見出しと要約にして、原文をQRに入れる」で、見出しと要約のカードに置き換わります。原文は QR にそのまま入り、iPhone のカメラで読み取ると原文が表示されます。日本語で 300 文字前後、英語で 900 文字前後まで入ります。URL 欄は GitHub 以外の http / https も `curl` で取り込み、本文を要約します。左の欄には、自分に assign された open の issue と PR、今日以降のリマインダーが並び、選ぶとカードになります。
+テキストボックスに文章を書くと markdown として組まれます。画像を貼ると `[Image #1]` と出て、その位置に画像が組まれます。「見出しと要約にして、原文をQRに入れる」で、見出しと要約のカードに置き換わります。原文は QR にそのまま入り、iPhone のカメラで読み取ると原文が表示されます。日本語で 300 文字前後、英語で 900 文字前後まで入ります。URL 欄は GitHub 以外の http / https も `curl` で取り込み、本文を要約します。左の欄には、自分に assign された open の issue と PR、今日以降のリマインダー（期限の昇順）が並び、選ぶとカードになります。リマインダーはリストを選んで絞れます。リマインダーのカードは見出しと要約になり、QR にはそのリマインダーを開くリンク（`x-apple-reminderkit://`）が入ります。
 
 ## iPhone アプリ
 

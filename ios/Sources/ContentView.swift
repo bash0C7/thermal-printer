@@ -60,7 +60,19 @@ struct ContentView: View {
     }
 
     private var remindersSection: some View {
-        Section("リマインダー") {
+        Section("リマインダー（期限の昇順）") {
+            if !model.reminderLists.isEmpty {
+                Picker("リスト", selection: Binding(
+                    get: { model.reminderList },
+                    set: { model.selectReminderList($0) })
+                ) {
+                    Text("すべてのリスト").tag(String?.none)
+                    ForEach(model.reminderLists, id: \.self) { list in
+                        Text(list).tag(Optional(list))
+                    }
+                }
+                .accessibilityIdentifier("reminderListPicker")
+            }
             if let message = model.remindersMessage {
                 Text(message).foregroundStyle(.secondary)
             }

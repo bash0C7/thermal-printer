@@ -11,6 +11,22 @@ public struct PrinterStatusSnapshot: Equatable, Sendable {
 }
 
 public enum PrinterStatusText {
+    private static let connectFailures: [String: String] = [
+        "pairing_info_removed":
+            "T02は見つかりましたが、T02がこの端末のペアリング情報を忘れていて接続を拒否しました。この端末のBluetooth設定でT02の登録を解除し、T02の電源を入れ直してから、もう一度試してください。",
+        "auth_failed":
+            "T02は見つかりましたが、認証に失敗しました。この端末のBluetooth設定でT02の登録を解除してから、もう一度試してください。",
+        "connect_timeout":
+            "T02は見つかりましたが、接続が時間内に終わりませんでした。T02に近づき、電源を入れ直してから、もう一度試してください。",
+        "link_dropped":
+            "T02は見つかりましたが、接続が成立する前に切れました。T02の電源を入れ直してから、もう一度試してください。",
+    ]
+
+    public static func message(for kind: PrintResult.ErrorKind, detail: String?) -> String {
+        guard kind == .notFound, let detail, let specific = connectFailures[detail] else { return message(for: kind) }
+        return specific + "（詳細: \(detail)）"
+    }
+
     public static func message(for kind: PrintResult.ErrorKind) -> String {
         switch kind {
         case .unknown:

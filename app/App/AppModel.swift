@@ -28,6 +28,7 @@ struct Banner: Equatable {
 @Observable
 final class AppModel {
     static let thresholdDefaultsKey = "lengthThresholdCentimeters"
+    static let reminderListDefaultsKey = "reminderList"
     static let densityRange = 1...5
     static let defaultDensity = 4
 
@@ -42,7 +43,9 @@ final class AppModel {
     private(set) var issues: [TodayIssue] = []
     private(set) var issuesMessage: String?
     private(set) var issuesLoading = false
-    private(set) var reminders: [TodayReminder] = []
+    private(set) var allReminders: [TodayReminder] = []
+    private(set) var reminderLists: [String] = []
+    private(set) var reminderList: String?
     private(set) var remindersMessage: String?
     private(set) var remindersLoading = false
     private(set) var remindersNeedAccess = false
@@ -85,6 +88,11 @@ final class AppModel {
         self.previews = PreviewCoordinator(client: PrinterClient(launch: launch))
         let saved = UserDefaults.standard.double(forKey: Self.thresholdDefaultsKey)
         self.thresholdCentimeters = saved > 0 ? saved : LengthPolicy.defaultThresholdCentimeters
+        self.reminderList = UserDefaults.standard.string(forKey: Self.reminderListDefaultsKey)
+    }
+
+    var reminders: [TodayReminder] {
+        TodayFilter.reminders(allReminders.map(\.item), inList: reminderList).map(TodayReminder.init)
     }
 
     var policy: LengthPolicy { LengthPolicy(thresholdCentimeters: thresholdCentimeters) }
@@ -247,7 +255,14 @@ final class AppModel {
             return
         }
         guard !isChecked(key) else { return }
-        add(.card(ReminderCard.make(reminder.item, now: Date())), todayKey: key)
+        pendingKeys.insert(key)
+        pendingCards += 1
+        Task {
+            let card = await ReminderCard.make(reminder.item, now: Date(), summarizer: summarizer)
+            pendingCards -= 1
+            guard pendingKeys.remove(key) != nil else { return }
+            add(.card(card), todayKey: key)
+        }
     }
 
     func refreshToday(requestRemindersAccess: Bool = true) async {
@@ -259,7 +274,7 @@ final class AppModel {
     func loadReminders(requestAccess: Bool) async {
         guard requestAccess || TodayLoader.remindersAuthorized else {
             remindersNeedAccess = true
-            reminders = []
+            clearReminders()
             remindersMessage = "リマインダーの読み取りが未許可です"
             return
         }
@@ -267,15 +282,40 @@ final class AppModel {
         remindersLoading = true
         defer { remindersLoading = false }
         do {
-            reminders = try await TodayLoader.reminders()
-            remindersMessage = reminders.isEmpty ? "今日以降のリマインダーはありません" : nil
+            allReminders = try await TodayLoader.reminders()
+            reminderLists = try await TodayLoader.reminderLists()
+            if let reminderList, !reminderLists.contains(reminderList) { storeReminderList(nil) }
+            updateRemindersMessage()
         } catch RemindersSource.Failure.accessDenied {
-            reminders = []
+            clearReminders()
             remindersMessage = "リマインダーへのアクセスが許可されていません。システム設定の「プライバシーとセキュリティ」で許可してください"
         } catch {
-            reminders = []
+            clearReminders()
             remindersMessage = error.localizedDescription
         }
+    }
+
+    func selectReminderList(_ list: String?) {
+        storeReminderList(list)
+        updateRemindersMessage()
+    }
+
+    private func storeReminderList(_ list: String?) {
+        reminderList = list
+        UserDefaults.standard.set(list, forKey: Self.reminderListDefaultsKey)
+    }
+
+    private func clearReminders() {
+        allReminders = []
+        reminderLists = []
+    }
+
+    private func updateRemindersMessage() {
+        guard reminders.isEmpty else {
+            remindersMessage = nil
+            return
+        }
+        remindersMessage = reminderList == nil ? "今日以降のリマインダーはありません" : "このリストに今日以降のリマインダーはありません"
     }
 
     func refreshStatus() async {
@@ -319,7 +359,7 @@ final class AppModel {
 
     static func banner(for result: PrintResult, lengthText: String) -> Banner {
         guard result.ok else {
-            return Banner(kind: .failure, text: PrinterStatusText.message(for: result.error ?? .unknown))
+            return Banner(kind: .failure, text: PrinterStatusText.message(for: result.error ?? .unknown, detail: result.detail))
         }
         if result.warnings.isEmpty {
             return Banner(kind: .success, text: "印刷しました（\(lengthText)）")

@@ -3,6 +3,7 @@
   "mode": "status",
   "ok": true,
   "error": null,
+  "detail": null,
   "exit_code": 0,
   "hint": null,
   "warnings": [],

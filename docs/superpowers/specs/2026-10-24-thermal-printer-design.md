@@ -421,7 +421,7 @@ URL の種類ごとの扱い（【ユーザー決定】「URL は、gh などコ
 | Web ページ（http / https） | `curl` で取得し、本文のテキストを取り出して要約する | 上段: ホスト名 / QR: その URL / タイトル（`<title>`、無ければ生成した見出し）/ 本文の要約。取得できない・本文が取れないときは、下の知らない URL のカードに理由を添える |
 | メモ（テキストボックス） | しない | 上段: 「メモ」と文字数 / QR: 原文そのまま / 見出し / 要約 |
 | その他の URL | 取得しない | URL の文字列（強制折り返し）と QR |
-| リマインダー（今日のカード） | EventKit | 【Claude の判断】QR なし。上段: リスト名と期限。タイトル: `☐ ` + 件名。メモがあれば本文として折り返す |
+| リマインダー（今日のカード） | EventKit | 【ユーザー決定】見出しと要約にし、QR はそのリマインダーを開くディープリンク `x-apple-reminderkit://REMCDReminder/<EventKit の calendarItemIdentifier>`。上段: リスト名と期限。タイトル: `☐ ` + 見出し。件名とメモを合わせて 20 文字以内なら要約せず、件名とメモをそのまま載せる |
 
 【Claude の判断】
 
@@ -448,7 +448,7 @@ URL の種類ごとの扱い（【ユーザー決定】「URL は、gh などコ
 {
   "version": 1,
   "kind": "github | slack | url | reminder | memo",
-  "url": "QR にする URL。reminder と memo は null",
+  "url": "QR にする URL。reminder はディープリンク。memo は null",
   "qr": "QR にする文字列（省略可）。あれば url より優先する",
   "header": {
     "lines": ["bash0C7/thermal-printer"],
