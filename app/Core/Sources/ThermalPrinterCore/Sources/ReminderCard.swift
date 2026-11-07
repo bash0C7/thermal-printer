@@ -23,6 +23,11 @@ public enum TodayFilter {
             .filter { $0.due.map { $0 >= start } ?? false }
             .sorted { ($0.due ?? .distantFuture) < ($1.due ?? .distantFuture) }
     }
+
+    public static func reminders(_ items: [ReminderItem], inList list: String?) -> [ReminderItem] {
+        guard let list else { return items }
+        return items.filter { $0.list == list }
+    }
 }
 
 public enum ReminderCard {

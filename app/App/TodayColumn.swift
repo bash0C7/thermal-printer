@@ -37,7 +37,19 @@ struct TodayColumn: View {
                         .accessibilityIdentifier("issuesMessage")
                 }
             }
-            Section("リマインダー（今日以降）") {
+            Section("リマインダー（今日以降・期限の昇順）") {
+                if !model.reminderLists.isEmpty {
+                    Picker("リスト", selection: Binding(
+                        get: { model.reminderList },
+                        set: { model.selectReminderList($0) })
+                    ) {
+                        Text("すべてのリスト").tag(String?.none)
+                        ForEach(model.reminderLists, id: \.self) { list in
+                            Text(list).tag(Optional(list))
+                        }
+                    }
+                    .accessibilityIdentifier("reminderListPicker")
+                }
                 if model.remindersLoading {
                     ProgressView().controlSize(.small)
                 }

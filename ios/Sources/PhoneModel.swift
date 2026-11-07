@@ -16,6 +16,7 @@ struct PhonePart: Identifiable, Equatable {
 final class PhoneModel {
     static let density = 4
     static let draftDebounce = Duration.milliseconds(350)
+    static let reminderListDefaultsKey = "reminderList"
 
     private(set) var parts: [PhonePart] = []
     private(set) var draft = DraftDocument(
@@ -23,7 +24,9 @@ final class PhoneModel {
     private(set) var isDigesting = false
     private(set) var preview: UIImage?
     private(set) var rows = 0
-    private(set) var reminders: [ReminderItem] = []
+    private(set) var allReminders: [ReminderItem] = []
+    private(set) var reminderLists: [String] = []
+    private(set) var reminderList = UserDefaults.standard.string(forKey: PhoneModel.reminderListDefaultsKey)
     private(set) var remindersMessage: String?
     private(set) var isPrinting = false
     var banner: String?
@@ -36,6 +39,7 @@ final class PhoneModel {
     var lengthText: String { LengthPolicy.lengthText(rows: rows) }
     var canPrint: Bool { rows > 0 && !isPrinting }
     var canDigest: Bool { !isDigesting && draft.canDigest }
+    var reminders: [ReminderItem] { TodayFilter.reminders(allReminders, inList: reminderList) }
 
     func edit(_ text: String) {
         draft.edit(text)
@@ -132,16 +136,42 @@ final class PhoneModel {
     }
 
     func loadReminders() async {
+        let source = RemindersSource(store: EventKitRemindersStore())
         do {
-            reminders = try await RemindersSource(store: EventKitRemindersStore()).todaysReminders()
-            remindersMessage = reminders.isEmpty ? "今日以降のリマインダーはありません" : nil
+            allReminders = try await source.todaysReminders()
+            reminderLists = try await source.lists()
+            if let reminderList, !reminderLists.contains(reminderList) { storeReminderList(nil) }
+            updateRemindersMessage()
         } catch RemindersSource.Failure.accessDenied {
-            reminders = []
+            clearReminders()
             remindersMessage = "リマインダーへのアクセスが許可されていません。設定アプリで許可してください"
         } catch {
-            reminders = []
+            clearReminders()
             remindersMessage = error.localizedDescription
         }
+    }
+
+    func selectReminderList(_ list: String?) {
+        storeReminderList(list)
+        updateRemindersMessage()
+    }
+
+    private func storeReminderList(_ list: String?) {
+        reminderList = list
+        UserDefaults.standard.set(list, forKey: Self.reminderListDefaultsKey)
+    }
+
+    private func clearReminders() {
+        allReminders = []
+        reminderLists = []
+    }
+
+    private func updateRemindersMessage() {
+        guard reminders.isEmpty else {
+            remindersMessage = nil
+            return
+        }
+        remindersMessage = reminderList == nil ? "今日以降のリマインダーはありません" : "このリストに今日以降のリマインダーはありません"
     }
 
     func printStrip() async {

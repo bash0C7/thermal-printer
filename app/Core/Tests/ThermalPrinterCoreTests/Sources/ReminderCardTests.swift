@@ -25,6 +25,7 @@ private struct FakeStore: RemindersStore {
     let granted: Bool
     let items: [ReminderItem]
     let recorder: Recorder
+    var lists: [String] = []
 
     final class Recorder: @unchecked Sendable {
         var fetchedStart: Date?
@@ -32,6 +33,8 @@ private struct FakeStore: RemindersStore {
     }
 
     func requestAccess() async throws -> Bool { granted }
+
+    func listTitles() -> [String] { lists }
 
     func incompleteReminders(dueFrom start: Date) async -> [ReminderItem] {
         recorder.fetchedStart = start
@@ -112,6 +115,35 @@ private struct FakeStore: RemindersStore {
             item(due: nil),
         ]
         #expect(TodayFilter.reminders(items, now: morning, calendar: tokyo).count == 2)
+    }
+
+    @Test func noListSelectionKeepsEveryReminder() {
+        let items = [item("a", list: "仕事", due: nil), item("b", list: "買い物", due: nil)]
+        #expect(TodayFilter.reminders(items, inList: nil) == items)
+    }
+
+    @Test func listSelectionKeepsOnlyThatListAndTheOrder() {
+        let items = [
+            item("a", list: "仕事", due: nil),
+            item("b", list: "買い物", due: nil),
+            item("c", list: "仕事", due: nil),
+        ]
+        #expect(TodayFilter.reminders(items, inList: "仕事").map(\.title) == ["a", "c"])
+    }
+
+    @Test func listsAreTheStoresListTitlesWithoutDuplicatesInNameOrder() async throws {
+        let store = FakeStore(granted: true, items: [], recorder: .init(), lists: ["仕事", "買い物", "仕事", "家事"])
+        let titles = try await RemindersSource(store: store, calendar: tokyo).lists()
+        #expect(titles == titles.sorted())
+        #expect(Set(titles) == ["仕事", "買い物", "家事"])
+        #expect(titles.count == 3)
+    }
+
+    @Test func deniedAccessThrowsWhenReadingLists() async {
+        let store = FakeStore(granted: false, items: [], recorder: .init(), lists: ["仕事"])
+        await #expect(throws: RemindersSource.Failure.accessDenied) {
+            try await RemindersSource(store: store, calendar: tokyo).lists()
+        }
     }
 
     @Test func sourceAsksTheStoreForEverythingDueFromTheStartOfToday() async throws {

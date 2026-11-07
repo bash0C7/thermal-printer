@@ -85,4 +85,8 @@ enum TodayLoader {
         let source = RemindersSource(store: EventKitRemindersStore())
         return try await source.todaysReminders(now: now).map(TodayReminder.init)
     }
+
+    static func reminderLists() async throws -> [String] {
+        try await RemindersSource(store: EventKitRemindersStore()).lists()
+    }
 }
