@@ -31,17 +31,22 @@ final class VMPrinter: @unchecked Sendable {
     private var holdPrefix: String { directory.appending(path: "cheki-").path }
     private func holdFile(_ name: String) -> URL { URL(fileURLWithPath: holdPrefix + name) }
 
-    var isHeldLinked: Bool {
-        (try? String(contentsOf: holdFile("state"), encoding: .utf8)) == "linked"
+    func holdState() -> String? {
+        try? String(contentsOf: holdFile("state"), encoding: .utf8)
     }
 
-    func startHolding(density: Int) {
+    func startHolding(
+        density: Int, started: @escaping @MainActor @Sendable () -> Void,
+        ended: @escaping @MainActor @Sendable () -> Void
+    ) {
         setWantsHold(true)
         queue.async {
+            defer { DispatchQueue.main.async { MainActor.assumeIsolated { ended() } } }
             guard self.holdLock.withLock({ self.wantsHold }) else { return }
             for name in ["close", "job.pbm", "result.json", "state"] {
                 try? FileManager.default.removeItem(at: self.holdFile(name))
             }
+            DispatchQueue.main.async { MainActor.assumeIsolated { started() } }
             do {
                 let handle = try self.openIfNeeded()
                 let argument = "\(self.holdPrefix)\t\(density)"

@@ -34,11 +34,17 @@ struct ContentView: View {
         Button {
             cheki.toggle()
         } label: {
-            Image(systemName: cheki.isActive ? "doc.text" : "camera")
-                .font(.title2)
-                .frame(width: 56, height: 56)
-                .background(.ultraThinMaterial, in: Circle())
-                .shadow(radius: 4)
+            Group {
+                if cheki.isClosing {
+                    ProgressView()
+                } else {
+                    Image(systemName: cheki.isActive ? "doc.text" : "camera")
+                }
+            }
+            .font(.title2)
+            .frame(width: 56, height: 56)
+            .background(.ultraThinMaterial, in: Circle())
+            .shadow(radius: 4)
         }
         .padding(20)
         .accessibilityIdentifier("modeToggle")
