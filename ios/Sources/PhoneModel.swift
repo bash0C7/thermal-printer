@@ -29,6 +29,7 @@ final class PhoneModel {
     private(set) var reminderList = UserDefaults.standard.string(forKey: PhoneModel.reminderListDefaultsKey)
     private(set) var remindersMessage: String?
     private(set) var isPrinting = false
+    private(set) var pendingReminderKeys: Set<String> = []
     var banner: String?
 
     @ObservationIgnored private let summarizer = SummarizerSelector().summarizer
@@ -37,7 +38,7 @@ final class PhoneModel {
     @ObservationIgnored private var recomposeTask: Task<Void, Never>?
 
     var lengthText: String { LengthPolicy.lengthText(rows: rows) }
-    var canPrint: Bool { rows > 0 && !isPrinting }
+    var canPrint: Bool { rows > 0 && !isPrinting && pendingReminderKeys.isEmpty }
     var canDigest: Bool { !isDigesting && draft.canDigest }
     var reminders: [ReminderItem] { TodayFilter.reminders(allReminders, inList: reminderList) }
 
@@ -122,16 +123,22 @@ final class PhoneModel {
     }
 
     func isChecked(_ key: String) -> Bool {
-        parts.contains { $0.reminderKey == key }
+        pendingReminderKeys.contains(key) || parts.contains { $0.reminderKey == key }
     }
 
     func setReminder(_ item: ReminderItem, checked: Bool) {
         let key = item.key
-        if checked {
-            guard !isChecked(key) else { return }
-            add(.card(ReminderCard.make(item, now: Date())), reminderKey: key)
-        } else if let existing = parts.first(where: { $0.reminderKey == key }) {
-            remove(existing.id)
+        guard checked else {
+            pendingReminderKeys.remove(key)
+            if let existing = parts.first(where: { $0.reminderKey == key }) { remove(existing.id) }
+            return
+        }
+        guard !isChecked(key) else { return }
+        pendingReminderKeys.insert(key)
+        Task {
+            let card = await ReminderCard.make(item, now: Date(), summarizer: summarizer)
+            guard pendingReminderKeys.remove(key) != nil else { return }
+            add(.card(card), reminderKey: key)
         }
     }
 

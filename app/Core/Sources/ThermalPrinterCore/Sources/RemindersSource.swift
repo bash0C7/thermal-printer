@@ -32,8 +32,12 @@ public struct RemindersSource: Sendable {
         return Array(Set(store.listTitles())).sorted()
     }
 
-    public func todaysCards(now: Date = Date()) async throws -> [Card] {
-        try await todaysReminders(now: now).map { ReminderCard.make($0, now: now, calendar: calendar) }
+    public func todaysCards(now: Date = Date(), summarizer: any Summarizer) async throws -> [Card] {
+        var cards: [Card] = []
+        for item in try await todaysReminders(now: now) {
+            cards.append(await ReminderCard.make(item, now: now, calendar: calendar, summarizer: summarizer))
+        }
+        return cards
     }
 }
 
@@ -69,7 +73,8 @@ public final class EventKitRemindersStore: RemindersStore, @unchecked Sendable {
             list: reminder.calendar.title,
             due: due,
             dueHasTime: components?.hour != nil,
-            notes: reminder.notes
+            notes: reminder.notes,
+            identifier: reminder.calendarItemIdentifier
         )
     }
 }

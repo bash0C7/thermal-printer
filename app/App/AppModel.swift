@@ -255,7 +255,14 @@ final class AppModel {
             return
         }
         guard !isChecked(key) else { return }
-        add(.card(ReminderCard.make(reminder.item, now: Date())), todayKey: key)
+        pendingKeys.insert(key)
+        pendingCards += 1
+        Task {
+            let card = await ReminderCard.make(reminder.item, now: Date(), summarizer: summarizer)
+            pendingCards -= 1
+            guard pendingKeys.remove(key) != nil else { return }
+            add(.card(card), todayKey: key)
+        }
     }
 
     func refreshToday(requestRemindersAccess: Bool = true) async {

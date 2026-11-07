@@ -6,13 +6,17 @@ public struct ReminderItem: Equatable, Sendable {
     public var due: Date?
     public var dueHasTime: Bool
     public var notes: String?
+    public var identifier: String?
 
-    public init(title: String, list: String, due: Date?, dueHasTime: Bool = true, notes: String?) {
+    public init(
+        title: String, list: String, due: Date?, dueHasTime: Bool = true, notes: String?, identifier: String? = nil
+    ) {
         self.title = title
         self.list = list
         self.due = due
         self.dueHasTime = dueHasTime
         self.notes = notes
+        self.identifier = identifier
     }
 }
 
@@ -33,14 +37,26 @@ public enum TodayFilter {
 public enum ReminderCard {
     private static let weekdays = ["日", "月", "火", "水", "木", "金", "土"]
 
-    public static func make(_ item: ReminderItem, now: Date, calendar: Calendar = .current) -> Card {
+    public static func make(
+        _ item: ReminderItem, now: Date, calendar: Calendar = .current, summarizer: any Summarizer
+    ) async -> Card {
         let notes = item.notes?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let text = [item.title, notes].filter { !$0.isEmpty }.joined(separator: "\n")
+        let header = Card.Header(
+            lines: [item.list], sublines: dueLine(item, now: now, calendar: calendar).map { [$0] } ?? [])
+        let url = item.identifier.map { "x-apple-reminderkit://REMCDReminder/\($0)" }
+
+        guard text.count > SummaryKind.heading.characterLimit else {
+            return Card(
+                kind: .reminder, url: url, header: header, title: "☐ " + item.title,
+                sections: notes.isEmpty ? [] : [Card.Section(text: notes)])
+        }
+        let digest = await TextDigest.make(text, summarizer: summarizer)
         return Card(
-            kind: .reminder, url: nil,
-            header: Card.Header(lines: [item.list], sublines: dueLine(item, now: now, calendar: calendar).map { [$0] } ?? []),
-            title: "☐ " + item.title,
-            sections: notes.isEmpty ? [] : [Card.Section(text: notes)]
-        )
+            kind: .reminder, url: url, header: header,
+            title: "☐ " + (digest.heading.text.isEmpty ? item.title : digest.heading.text),
+            sections: digest.sections,
+            note: digest.usedFallback ? GitHubHandler.fallbackNote : nil)
     }
 
     private static func dueLine(_ item: ReminderItem, now: Date, calendar: Calendar) -> String? {

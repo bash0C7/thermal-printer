@@ -42,10 +42,10 @@ enum CardFixture {
         #expect(card.note == nil)
     }
 
-    @Test func reminderFixtureHasNoURLAndNoEmphasis() throws {
+    @Test func reminderFixtureHasTheDeepLinkAndNoEmphasis() throws {
         let card = try CardFixture.card("reminder")
         #expect(card.kind == .reminder)
-        #expect(card.url == nil)
+        #expect(card.url == "x-apple-reminderkit://REMCDReminder/6F1B2C3D-0000-4000-8000-000000000001")
         #expect(card.header.emphasis == nil)
     }
 
@@ -60,12 +60,12 @@ enum CardFixture {
         }
     }
 
-    @Test func encodedReminderKeepsUrlAndEmphasisAsExplicitNull() throws {
+    @Test func encodedReminderKeepsEmphasisAsExplicitNull() throws {
         let object = try #require(
             JSONSerialization.jsonObject(with: JSONEncoder().encode(CardFixture.card("reminder"))) as? [String: Any]
         )
         #expect(Set(object.keys) == ["version", "kind", "url", "header", "title", "sections"])
-        #expect(object["url"] is NSNull)
+        #expect(object["url"] is String)
         let header = try #require(object["header"] as? [String: Any])
         #expect(header["emphasis"] is NSNull)
     }

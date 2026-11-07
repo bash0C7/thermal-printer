@@ -14,12 +14,39 @@ private func date(_ year: Int, _ month: Int, _ day: Int, _ hour: Int = 0, _ minu
 
 private func item(
     _ title: String = "牛乳を買う", list: String = "買い物",
-    due: Date?, dueHasTime: Bool = true, notes: String? = nil
+    due: Date?, dueHasTime: Bool = true, notes: String? = nil, identifier: String? = nil
 ) -> ReminderItem {
-    ReminderItem(title: title, list: list, due: due, dueHasTime: dueHasTime, notes: notes)
+    ReminderItem(title: title, list: list, due: due, dueHasTime: dueHasTime, notes: notes, identifier: identifier)
 }
 
 private let morning = date(2026, 10, 24, 9, 0)
+
+private struct MarkingSummarizer: Summarizer {
+    func summarize(_ text: String, kind: SummaryKind) async -> Summary {
+        switch kind {
+        case .heading: Summary(text: "見出し:" + text, usedModel: true)
+        case .digest: Summary(text: "要約:" + text, usedModel: true)
+        default: Summary(text: text, usedModel: true)
+        }
+    }
+}
+
+private struct FixedSummarizer: Summarizer {
+    let heading: String
+    let digest: String
+
+    func summarize(_ text: String, kind: SummaryKind) async -> Summary {
+        switch kind {
+        case .heading: Summary(text: heading, usedModel: true)
+        case .digest: Summary(text: digest, usedModel: true)
+        default: Summary(text: text, usedModel: true)
+        }
+    }
+}
+
+private func card(_ item: ReminderItem, now: Date = morning, summarizer: any Summarizer = MarkingSummarizer()) async -> Card {
+    await ReminderCard.make(item, now: now, calendar: tokyo, summarizer: summarizer)
+}
 
 private struct FakeStore: RemindersStore {
     let granted: Bool
@@ -44,8 +71,8 @@ private struct FakeStore: RemindersStore {
 }
 
 @Suite struct ReminderCardTests {
-    @Test func reminderCardHasListAndDueInTheHeaderAndABallotBoxTitle() {
-        let card = ReminderCard.make(item(due: date(2026, 10, 24, 18, 0)), now: morning, calendar: tokyo)
+    @Test func reminderCardHasListAndDueInTheHeaderAndABallotBoxTitle() async {
+        let card = await card(item(due: date(2026, 10, 24, 18, 0)))
         #expect(card.kind == .reminder)
         #expect(card.url == nil)
         #expect(card.header.lines == ["買い物"])
@@ -53,57 +80,91 @@ private struct FakeStore: RemindersStore {
         #expect(card.title == "☐ 牛乳を買う")
     }
 
-    @Test func cardMatchesTheSharedReminderFixture() throws {
-        let notes = "低脂肪ではなく普通のもの。帰りにスーパーで。卵が安ければ一緒に。"
-        let card = ReminderCard.make(item(due: date(2026, 10, 24, 18, 0), notes: notes), now: morning, calendar: tokyo)
-        #expect(card == (try CardFixture.card("reminder")))
+    @Test func theQRIsTheDeepLinkToTheReminder() async {
+        let card = await card(item(due: nil, identifier: "6F1B2C3D-0000-4000-8000-000000000001"))
+        #expect(card.url == "x-apple-reminderkit://REMCDReminder/6F1B2C3D-0000-4000-8000-000000000001")
     }
 
-    @Test func notesBecomeTheBodySectionWithoutALabel() {
-        let card = ReminderCard.make(item(due: nil, notes: "  帰りに寄る\n"), now: morning, calendar: tokyo)
+    @Test func cardMatchesTheSharedReminderFixture() async throws {
+        let notes = "低脂肪ではなく普通のもの。帰りにスーパーで。卵が安ければ一緒に。"
+        let summarizer = FixedSummarizer(heading: "牛乳を買う", digest: notes)
+        let reminder = item(due: date(2026, 10, 24, 18, 0), notes: notes, identifier: "6F1B2C3D-0000-4000-8000-000000000001")
+        #expect(await card(reminder, summarizer: summarizer) == (try CardFixture.card("reminder")))
+    }
+
+    @Test func titleAndNotesAreHandedToTheSummarizerAndBecomeTheHeadingAndTheDigest() async {
+        let long = "ryuzeeさんの新しい本の翻訳レビュワーとして本を通読する"
+        let card = await card(item(long, due: nil, notes: "  第3章まで  "))
+        #expect(card.title == "☐ 見出し:\(long)\n第3章まで")
+        #expect(card.sections == [Card.Section(label: nil, text: "要約:\(long)\n第3章まで")])
+        #expect(card.note == nil)
+    }
+
+    @Test func aLongTitleWithoutNotesIsSummarizedToo() async {
+        let long = "ryuzeeさんの新しい本の翻訳レビュワーとして本を通読する"
+        let card = await card(item(long, due: nil))
+        #expect(card.title == "☐ 見出し:\(long)")
+        #expect(card.sections == [Card.Section(label: nil, text: "要約:\(long)")])
+    }
+
+    @Test func aTitleThatFitsTheHeadingIsKeptAsIsAndNeverSummarized() async {
+        let card = await card(item("牛乳を買う", due: nil))
+        #expect(card.title == "☐ 牛乳を買う")
+        #expect(card.sections.isEmpty)
+    }
+
+    @Test func shortNotesStayAsTheBodyWithoutALabel() async {
+        let card = await card(item(due: nil, notes: "  帰りに寄る\n"))
+        #expect(card.title == "☐ 牛乳を買う")
         #expect(card.sections == [Card.Section(label: nil, text: "帰りに寄る")])
     }
 
     @Test(arguments: [nil, "", "  \n "] as [String?])
-    func absentOrBlankNotesLeaveNoSection(notes: String?) {
-        let card = ReminderCard.make(item(due: nil, notes: notes), now: morning, calendar: tokyo)
+    func absentOrBlankNotesLeaveNoSection(notes: String?) async {
+        let card = await card(item(due: nil, notes: notes))
         #expect(card.sections.isEmpty)
     }
 
-    @Test func reminderWithoutADueDateHasNoDueLine() {
-        let card = ReminderCard.make(item(due: nil), now: morning, calendar: tokyo)
+    @Test func summaryModelUnavailableTruncatesAndSaysSo() async {
+        let long = "ryuzeeさんの新しい本の翻訳レビュワーとして本を通読する"
+        let card = await card(item(long, due: nil), summarizer: TruncatingSummarizer())
+        #expect(card.note == GitHubHandler.fallbackNote)
+    }
+
+    @Test func reminderWithoutADueDateHasNoDueLine() async {
+        let card = await card(item(due: nil))
         #expect(card.header.sublines.isEmpty)
     }
 
-    @Test func dateOnlyDueOmitsTheTime() {
-        let card = ReminderCard.make(item(due: date(2026, 10, 24), dueHasTime: false), now: morning, calendar: tokyo)
+    @Test func dateOnlyDueOmitsTheTime() async {
+        let card = await card(item(due: date(2026, 10, 24), dueHasTime: false))
         #expect(card.header.sublines == ["期限 今日"])
     }
 
-    @Test func timeIsZeroPadded() {
-        let card = ReminderCard.make(item(due: date(2026, 10, 24, 7, 5)), now: morning, calendar: tokyo)
+    @Test func timeIsZeroPadded() async {
+        let card = await card(item(due: date(2026, 10, 24, 7, 5)))
         #expect(card.header.sublines == ["期限 今日 07:05"])
     }
 
-    @Test func yesterdayAndTomorrowAreNamed() {
-        let yesterday = ReminderCard.make(item(due: date(2026, 10, 23, 18, 0)), now: morning, calendar: tokyo)
-        let tomorrow = ReminderCard.make(item(due: date(2026, 10, 25, 18, 0)), now: morning, calendar: tokyo)
+    @Test func yesterdayAndTomorrowAreNamed() async {
+        let yesterday = await card(item(due: date(2026, 10, 23, 18, 0)))
+        let tomorrow = await card(item(due: date(2026, 10, 25, 18, 0)))
         #expect(yesterday.header.sublines == ["期限 昨日 18:00"])
         #expect(tomorrow.header.sublines == ["期限 明日 18:00"])
     }
 
-    @Test func olderDueShowsDateAndWeekday() {
-        let card = ReminderCard.make(item(due: date(2026, 10, 20, 18, 0)), now: morning, calendar: tokyo)
+    @Test func olderDueShowsDateAndWeekday() async {
+        let card = await card(item(due: date(2026, 10, 20, 18, 0)))
         #expect(card.header.sublines == ["期限 10/20(火) 18:00"])
     }
 
-    @Test func dueInAnotherYearShowsTheYear() {
-        let card = ReminderCard.make(item(due: date(2025, 12, 31, 18, 0)), now: morning, calendar: tokyo)
+    @Test func dueInAnotherYearShowsTheYear() async {
+        let card = await card(item(due: date(2025, 12, 31, 18, 0)))
         #expect(card.header.sublines == ["期限 2025/12/31(水) 18:00"])
     }
 
-    @Test func dueEarlierTodayThanNowIsStillToday() {
-        let card = ReminderCard.make(item(due: date(2026, 10, 24, 0, 30)), now: date(2026, 10, 24, 23, 0), calendar: tokyo)
+    @Test func dueEarlierTodayThanNowIsStillToday() async {
+        let card = await card(item(due: date(2026, 10, 24, 0, 30)), now: date(2026, 10, 24, 23, 0))
         #expect(card.header.sublines == ["期限 今日 00:30"])
     }
 
@@ -172,9 +233,9 @@ private struct FakeStore: RemindersStore {
     @Test func sourceTurnsEachReminderIntoOneCard() async throws {
         let items = [item("明日", due: date(2026, 10, 25, 9, 0)), item("夕方", due: date(2026, 10, 24, 18, 0))]
         let source = RemindersSource(store: FakeStore(granted: true, items: items, recorder: .init()), calendar: tokyo)
-        let cards = try await source.todaysCards(now: morning)
+        let cards = try await source.todaysCards(now: morning, summarizer: MarkingSummarizer())
         #expect(cards.map(\.title) == ["☐ 夕方", "☐ 明日"])
-        #expect(cards.allSatisfy { $0.kind == .reminder && $0.url == nil })
+        #expect(cards.allSatisfy { $0.kind == .reminder })
     }
 
     @Test func deniedAccessThrowsWithoutFetching() async {
@@ -186,16 +247,28 @@ private struct FakeStore: RemindersStore {
         #expect(recorder.fetchCount == 0)
     }
 
-    @Test func renderedReminderCardHasNoQRAndKeepsInkInsideThePrintableWidth() throws {
+    @Test func renderedReminderCardKeepsInkInsideThePrintableWidth() async throws {
         let long = String(repeating: "「これは、長い題名。」（括弧）ー長音！？", count: 6)
         let urlLike = "https://example.com/" + String(repeating: "path/segment?q=abcdefghij&", count: 8)
-        let card = ReminderCard.make(
-            item(long, list: long, due: date(2026, 10, 20, 18, 0), notes: urlLike + "\n" + long),
-            now: morning, calendar: tokyo
-        )
-        let rendered = try CardRenderer(margin: 8).render(card)
-        #expect(rendered.qrFrame == nil)
+        let reminder = item(
+            long, list: long, due: date(2026, 10, 20, 18, 0), notes: urlLike + "\n" + long,
+            identifier: "6F1B2C3D-0000-4000-8000-000000000001")
+        let rendered = try CardRenderer(margin: 8).render(await card(reminder))
         #expect(rendered.bitmap.blackPixels(inColumns: 0..<8).isEmpty)
         #expect(rendered.bitmap.blackPixels(inColumns: 360..<384).isEmpty)
+    }
+
+    @Test func renderedReminderCardScansBackToTheDeepLink() async throws {
+        let link = "x-apple-reminderkit://REMCDReminder/6F1B2C3D-0000-4000-8000-000000000001"
+        let rendered = try CardRenderer().render(
+            await card(item(due: date(2026, 10, 24, 18, 0), identifier: "6F1B2C3D-0000-4000-8000-000000000001")))
+        let frame = try #require(rendered.qrFrame)
+        var qrOnly = Bitmap1(height: frame.height)
+        for y in 0..<frame.height {
+            for x in 0..<frame.width where rendered.bitmap[x: frame.minX + x, y: frame.minY + y] {
+                qrOnly.set(x: x, y: y)
+            }
+        }
+        #expect(try QRDecoder.decode(qrOnly) == link)
     }
 }

@@ -1,7 +1,7 @@
 {
   "version": 1,
   "kind": "reminder",
-  "url": null,
+  "url": "x-apple-reminderkit://REMCDReminder/6F1B2C3D-0000-4000-8000-000000000001",
   "header": {
     "lines": ["買い物"],
     "emphasis": null,
