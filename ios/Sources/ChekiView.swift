@@ -1,4 +1,3 @@
-import ImageIO
 import Observation
 import SwiftUI
 import ThermalPrinterCore
@@ -9,13 +8,23 @@ import UIKit
 final class ChekiModel {
     static let shownAfterShot = Duration.seconds(1)
     static let revealStep = Duration.milliseconds(33)
+    static let stateStep = Duration.milliseconds(250)
 
     private(set) var isActive = false
     private(set) var isBusy = false
     private(set) var monochrome: UIImage?
     private(set) var revealedFraction = 0.0
+    private(set) var openHolds = 0
+    private(set) var linkState: String?
 
     @ObservationIgnored let camera = ChekiCamera()
+    @ObservationIgnored private var generation = 0
+    @ObservationIgnored private var holdLive = false
+    @ObservationIgnored private var watch: Task<Void, Never>?
+    @ObservationIgnored private var isSuspended = false
+
+    var isConnecting: Bool { isActive && linkState != "linked" && linkState != "unlinked" }
+    var isClosing: Bool { !isActive && openHolds > 0 }
 
     func toggle() {
         if isActive {
@@ -23,23 +32,52 @@ final class ChekiModel {
             isActive = false
         } else {
             isActive = true
-            resume()
+            open()
         }
     }
 
     func resume() {
-        guard isActive else { return }
-        camera.start()
-        VMPrinter.shared.startHolding(density: PhoneModel.density)
+        guard isActive, isSuspended else { return }
+        isSuspended = false
+        open()
     }
 
     func suspend() {
-        guard isActive else { return }
+        guard isActive, !isSuspended else { return }
+        isSuspended = true
         pause()
     }
 
+    private func open() {
+        camera.start()
+        generation += 1
+        let current = generation
+        holdLive = false
+        linkState = nil
+        openHolds += 1
+        VMPrinter.shared.startHolding(
+            density: PhoneModel.density,
+            started: { [weak self] in
+                guard let self, self.generation == current else { return }
+                self.holdLive = true
+            },
+            ended: { [weak self] in
+                guard let self else { return }
+                self.openHolds -= 1
+                if self.generation == current { self.holdLive = false }
+            })
+        watch?.cancel()
+        watch = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self else { return }
+                self.linkState = self.holdLive ? VMPrinter.shared.holdState() : nil
+                try? await Task.sleep(for: Self.stateStep)
+            }
+        }
+    }
+
     func shoot() async {
-        guard !isBusy else { return }
+        guard !isBusy, !isConnecting else { return }
         isBusy = true
         defer {
             monochrome = nil
@@ -47,8 +85,7 @@ final class ChekiModel {
             isBusy = false
         }
         guard let data = await camera.capture() else { return }
-        Self.describe(data)
-        let linked = VMPrinter.shared.isHeldLinked
+        let linked = holdLive && VMPrinter.shared.holdState() == "linked"
         let shot: ChekiShot
         let png: Data
         do {
@@ -60,7 +97,6 @@ final class ChekiModel {
             NSLog("[ThermalPrinterPhone] shot failed: %@", error.localizedDescription)
             return
         }
-        NSLog("[ThermalPrinterPhone] shot rows=%ld", shot.photo.height)
         monochrome = UIImage(data: png)
         if linked {
             await PhotoSaver.save(data)
@@ -98,20 +134,12 @@ final class ChekiModel {
         return true
     }
 
-    private static func describe(_ data: Data) {
-        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
-            let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
-        else {
-            NSLog("[ThermalPrinterPhone] photo unreadable bytes=%ld", data.count)
-            return
-        }
-        NSLog("[ThermalPrinterPhone] photo type=%@ pixels=%@x%@ orientation=%@",
-              (CGImageSourceGetType(source) as String?) ?? "-",
-              "\(properties[kCGImagePropertyPixelWidth] ?? "-")", "\(properties[kCGImagePropertyPixelHeight] ?? "-")",
-              "\(properties[kCGImagePropertyOrientation] ?? "-")")
-    }
-
     private func pause() {
+        generation += 1
+        holdLive = false
+        watch?.cancel()
+        watch = nil
+        linkState = nil
         camera.stop()
         VMPrinter.shared.stopHolding()
     }
@@ -139,8 +167,34 @@ struct ChekiView: View {
             }
         }
         .ignoresSafeArea()
+        .overlay(alignment: .top) { linkBadge }
         .contentShape(Rectangle())
         .onTapGesture { Task { await model.shoot() } }
         .accessibilityIdentifier("chekiView")
+    }
+
+    @ViewBuilder private var linkBadge: some View {
+        if model.isConnecting {
+            HStack(spacing: 8) {
+                ProgressView()
+                Text("T02に接続中")
+            }
+            .badgeStyle()
+            .accessibilityIdentifier("chekiConnecting")
+        } else if model.linkState == "unlinked" {
+            Label("T02に繋がっていません（白黒で保存します）", systemImage: "printer.slash")
+                .badgeStyle()
+                .accessibilityIdentifier("chekiUnlinked")
+        }
+    }
+}
+
+private extension View {
+    func badgeStyle() -> some View {
+        font(.callout)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(.ultraThinMaterial, in: Capsule())
+            .padding(.top, 8)
     }
 }
