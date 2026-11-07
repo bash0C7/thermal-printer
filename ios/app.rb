@@ -7,6 +7,13 @@ class PrinterApp
     "exit=#{code}"
   end
 
+  def hold(arg)
+    args = arg.split("\t")
+    timeout = PhomemoCLI::Holder::LOOP_TIMEOUT_MS
+    factory = lambda { PhomemoThermalPrinter::Transport.new(loop_timeout_ms: timeout) }
+    PhomemoCLI::Holder.new(args[0], transport_factory: factory, density: args[1].to_i).run
+  end
+
   def tick(_arg)
     ""
   end

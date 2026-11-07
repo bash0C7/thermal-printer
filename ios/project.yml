@@ -66,6 +66,8 @@ targets:
         GENERATE_INFOPLIST_FILE: "YES"
         INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription: "Phomemo T02 に Bluetooth で接続して印刷します。"
         INFOPLIST_KEY_NSRemindersFullAccessUsageDescription: "今日以降のリマインダーを読み取って印刷します。"
+        INFOPLIST_KEY_NSCameraUsageDescription: "チェキモードで、インカメの写真を撮って印刷します。"
+        INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: "チェキモードで撮った写真を、写真ライブラリに保存します。"
         TARGETED_DEVICE_FAMILY: "1"
         PRODUCT_BUNDLE_IDENTIFIER: com.bash0c7.thermalprinter.phone
         CODE_SIGN_STYLE: Automatic

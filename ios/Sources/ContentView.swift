@@ -7,8 +7,44 @@ struct ContentView: View {
     @Environment(PhoneModel.self) private var model
     @State private var photo: PhotosPickerItem?
     @State private var importingFile = false
+    @State private var cheki = ChekiModel()
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
+        ZStack(alignment: .bottomTrailing) {
+            if cheki.isActive {
+                ChekiView(model: cheki)
+            } else {
+                normalMode
+            }
+            if !cheki.isBusy && !model.isPrinting {
+                modeToggle
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            switch phase {
+            case .active: cheki.resume()
+            case .background: cheki.suspend()
+            default: break
+            }
+        }
+    }
+
+    private var modeToggle: some View {
+        Button {
+            cheki.toggle()
+        } label: {
+            Image(systemName: cheki.isActive ? "doc.text" : "camera")
+                .font(.title2)
+                .frame(width: 56, height: 56)
+                .background(.ultraThinMaterial, in: Circle())
+                .shadow(radius: 4)
+        }
+        .padding(20)
+        .accessibilityIdentifier("modeToggle")
+    }
+
+    private var normalMode: some View {
         NavigationStack {
             List {
                 draftSection

@@ -69,6 +69,14 @@ public enum ImageLoader {
         return FloydSteinberg.dither(GrayImage(width: width, height: height, values: values))
     }
 
+    public static func bitmapWithShortSideAcross(from data: Data) throws -> Bitmap1 {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else {
+            throw ImageLoaderError.unreadable
+        }
+        let image = try uprightImage(source)
+        return try bitmap(from: image, rotation: image.width > image.height ? .degrees90 : .degrees0)
+    }
+
     public static func sampleImage() -> CGImage {
         let size = (width: 600, height: 450)
         let context = makeContext(width: size.width, height: size.height)!
