@@ -1,6 +1,6 @@
 # thermal-printer
 
-Phomemo T02感熱プリンターに、MacからBLEで印字する道具です。
+Phomemo T02感熱プリンターに、Mac、iPhone、DualKeyからBLEで印字する道具です。
 
 - Macアプリ（SwiftUI）が、カード、Markdown、写真、QRコードなどを幅384 dotの白黒ビットマップに組み、紙の実寸でプレビューします。
 - 印字は、アプリが同梱のPicoRuby CLI `phomemo-print`を子プロセスで起動して行います。CLIは単独でも使えます。
