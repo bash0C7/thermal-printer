@@ -108,7 +108,7 @@ Finder から起動したアプリは `.zshenv` を読まないので、`GH_CONF
 
 - 【ユーザー決定】完了していないもの全部。status は open、planned、someday などがある。
 - 【Claude の判断】除くのは `status` が `done` と `cancelled` のもの（`status_write_values` の値）。それ以外の status は並べる。dialect の `hidden_statuses` にある `deferred` も、完了ではないので並べる（ユーザーが除くと言ったのは完了分だけのため）。`status` がないファイルはタスクではないので並べない（`identification.method: "property"`, `property_name: "status"`）。
-- 【Claude の判断】並び順は TaskForge の Kanban space と同じ: `scheduled` 昇順 → `due` 昇順 → `priority` 降順。値がないものは後ろ。priority の順位は `highest > high > medium > low > lowest > none`。
+- 【ユーザー決定】並び順はステータス別。ステータスは TaskForge の定義順（`TaskForge/Settings/agents.md` の列挙順から done と cancelled を除いた open → in-progress → on-hold → planned → deferred → blocked → someday → ready。知らない値は最後）。同じステータスの中は `due` 昇順 → `scheduled` 昇順（ユーザーの言葉では「完了日昇順-開始日昇順」）。値がないものは後ろ。priority は使わない。
 - 左の欄に「TaskForge」の節を足す。行にはタスク名と、status と期限などの補足を出す。体裁は【builder に任せる】。リマインダーと同じく checkbox で選ぶ。
 - 下の「更新」ボタンで読み直す。
 

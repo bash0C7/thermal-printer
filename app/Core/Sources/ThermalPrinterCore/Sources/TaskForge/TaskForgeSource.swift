@@ -39,13 +39,21 @@ public enum TaskForgeSource {
         !excludedStatuses.contains(note.status)
     }
 
+    public static let statusOrder = [
+        "open", "in-progress", "on-hold", "planned", "deferred", "blocked", "someday", "ready",
+    ]
+
     static func sorted(_ notes: [TaskNote]) -> [TaskNote] {
         notes.sorted { lhs, rhs in
-            if lhs.scheduled != rhs.scheduled { return earlier(lhs.scheduled, rhs.scheduled) }
+            if statusRank(lhs) != statusRank(rhs) { return statusRank(lhs) < statusRank(rhs) }
             if lhs.due != rhs.due { return earlier(lhs.due, rhs.due) }
-            if priorityRank(lhs) != priorityRank(rhs) { return priorityRank(lhs) > priorityRank(rhs) }
+            if lhs.scheduled != rhs.scheduled { return earlier(lhs.scheduled, rhs.scheduled) }
             return lhs.title < rhs.title
         }
+    }
+
+    private static func statusRank(_ note: TaskNote) -> Int {
+        statusOrder.firstIndex(of: note.status) ?? statusOrder.count
     }
 
     private static func earlier(_ lhs: Date?, _ rhs: Date?) -> Bool {
@@ -54,12 +62,5 @@ public enum TaskForgeSource {
         case (_?, nil): true
         default: false
         }
-    }
-
-    private static let priorityOrder = ["highest", "high", "medium", "low", "lowest", "none"]
-
-    private static func priorityRank(_ note: TaskNote) -> Int {
-        let index = note.priority.flatMap(priorityOrder.firstIndex(of:)) ?? priorityOrder.count - 1
-        return priorityOrder.count - index
     }
 }

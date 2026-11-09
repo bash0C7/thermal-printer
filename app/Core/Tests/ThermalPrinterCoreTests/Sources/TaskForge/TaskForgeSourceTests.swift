@@ -28,26 +28,37 @@ func everyOtherStatusIsListedBecauseItIsNotFinished(status: String) {
     #expect(TaskForgeSource.isOpen(note("t", status: status)))
 }
 
-@Test func tasksAreOrderedByScheduledThenDueThenPriority() {
-    let a = note("a", scheduled: earlierDay)
-    let b = note("b", due: laterDay)
-    let c = note("c", priority: "high")
-    let d = note("d", priority: "low")
-    #expect(TaskForgeSource.sorted([d, c, b, a]).map(\.title) == ["a", "b", "c", "d"])
+@Test func statusesFollowTaskForgesDefinitionOrderAndUnknownOnesComeLast() {
+    let statuses = ["weird", "ready", "someday", "blocked", "deferred", "planned", "on-hold", "in-progress", "open"]
+    let notes = statuses.map { note($0, status: $0) }
+    #expect(TaskForgeSource.sorted(notes).map(\.status)
+        == ["open", "in-progress", "on-hold", "planned", "deferred", "blocked", "someday", "ready", "weird"])
 }
 
-@Test func anEarlierScheduledDateComesFirstAndADueDateBreaksTies() {
-    let late = note("late", scheduled: laterDay)
-    let earlyDueLater = note("earlyDueLater", due: laterDay, scheduled: earlierDay)
-    let earlyDueSooner = note("earlyDueSooner", due: earlierDay, scheduled: earlierDay)
-    #expect(TaskForgeSource.sorted([late, earlyDueLater, earlyDueSooner]).map(\.title)
-        == ["earlyDueSooner", "earlyDueLater", "late"])
+@Test func theStatusOutranksEveryDate() {
+    let someday = note("someday", status: "someday", due: earlierDay, scheduled: earlierDay)
+    let open = note("open", status: "open")
+    #expect(TaskForgeSource.sorted([someday, open]).map(\.title) == ["open", "someday"])
 }
 
-@Test func priorityRunsFromHighestDownAndUnknownCountsAsNone() {
-    let titles = ["lowest", "none", "highest", "medium", "weird", "low", "high"]
-    let notes = titles.map { note($0, priority: $0) }
-    #expect(TaskForgeSource.sorted(notes).map(\.title) == ["highest", "high", "medium", "low", "lowest", "none", "weird"])
+@Test func withinAStatusAnEarlierDueDateComesFirstAndTasksWithoutOneComeLast() {
+    let none = note("none")
+    let later = note("later", due: laterDay)
+    let sooner = note("sooner", due: earlierDay)
+    #expect(TaskForgeSource.sorted([none, later, sooner]).map(\.title) == ["sooner", "later", "none"])
+}
+
+@Test func theScheduledDateBreaksTiesBetweenEqualDueDates() {
+    let noStart = note("noStart", due: earlierDay)
+    let lateStart = note("lateStart", due: earlierDay, scheduled: laterDay)
+    let earlyStart = note("earlyStart", due: earlierDay, scheduled: earlierDay)
+    #expect(TaskForgeSource.sorted([noStart, lateStart, earlyStart]).map(\.title)
+        == ["earlyStart", "lateStart", "noStart"])
+}
+
+@Test func thePriorityNoLongerDecidesTheOrder() {
+    #expect(TaskForgeSource.sorted([note("b", priority: "highest"), note("a", priority: "lowest")]).map(\.title)
+        == ["a", "b"])
 }
 
 @Test func equalTasksFallBackToTheTitle() {

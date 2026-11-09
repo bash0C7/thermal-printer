@@ -116,7 +116,7 @@ mise exec ruby@4.0.5 -- rake app:install
 
 - vaultの場所は、設定（`Command + ,`）の「TaskForge の vault の場所」に入れます（例: `~/Documents/my-vault`）。前後の空白は取り、`~`は展開します。入れるまでは、TaskForgeの欄に「設定で TaskForge の vault の場所を指定してください」と出ます。
 - タスクの置き場所と項目名は、vaultの`TaskForge/Settings/dialect.json`から読みます。
-- `done`と`cancelled`以外のタスクが、TaskForgeのKanbanと同じ順（`scheduled`、`due`、priorityの順。値がないものは後ろ）で並びます。下の「更新」で読み直します。
+- `done`と`cancelled`以外のタスクが、ステータスごとに並びます。ステータスの順はTaskForgeの定義順（open、in-progress、on-hold、planned、deferred、blocked、someday、ready。ほかの値は最後）です。同じステータスの中は期限（`due`）の昇順、期限が同じなら予定日（`scheduled`）の昇順で、値がないものは後ろです。下の「更新」で読み直します。
 - vaultは読むだけです。ファイルの作成、IDの付与、状態の変更はしません。
 - カードの見出しは「☐ タスク名」で、長いときは見出しと要約になります。ヘッダーにプロジェクトとstatus、予定と期限が出ます。
 - QRには、frontmatterに`id`があるタスクはTaskForgeのリンク（`taskforge:///task/<id>`）、ないタスクはObsidianでそのファイルを開くリンク（`obsidian://open?vault=…&file=…`）が入ります。
