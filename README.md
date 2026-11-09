@@ -12,7 +12,8 @@ Phomemo T02感熱プリンターに、Mac、iPhone、DualKeyからBLEで印字�
 
 ## 必要なもの
 
-- macOS 27以降、Xcode、xcodegen（`/opt/homebrew/bin/xcodegen`）、mise（Ruby 4.0.5）
+- macOS 27以降、Xcode、xcodegen（`/opt/homebrew/bin/xcodegen`）、mise
+- Ruby 4.0.5。入っていなければ、repoのルートで`mise install`を実行します
 - Phomemo T02
 - GitHubのカードには、認証済みの`gh`
 - 要約には、Apple Intelligence
@@ -98,8 +99,39 @@ mise exec ruby@4.0.5 -- rake app:install
 - テキストボックスに文章を書くとmarkdownとして組まれます。画像を貼ると`[Image #1]`と出て、その位置に画像が組まれます。
 - 「見出しと要約にして、原文をQRに入れる」で、見出しと要約のカードに置き換わります。原文はQRにそのまま入り、iPhoneのカメラで読み取ると原文が表示されます。日本語で300文字前後、英語で900文字前後まで入ります。
 - URL欄は、GitHubのissueとPRを`gh`で、それ以外のhttp / httpsを`curl`で取り込み、本文を要約します。
-- 左の欄には、自分にassignされたopenのissueとPR、今日以降のリマインダー（期限の昇順）が並び、選ぶとカードになります。リマインダーはリストを選んで絞れます。初回はリマインダーへのアクセス許可が出ます。
+- 左の欄には、GitHubのissueとPR、今日以降のリマインダー（期限の昇順）、TaskForgeのタスクが並び、選ぶとカードになります。
+- リマインダーはリストを選んで絞れます。初回はリマインダーへのアクセス許可が出ます。
 - リマインダーのカードは見出しと要約になり、QRにはそのリマインダーを開くリンク（`x-apple-reminderkit://`）が入ります。
+
+### GitHubのrepo欄
+
+- repo欄には、`owner/repo`か、`https://github.com/<owner>/<repo>`（後ろに`/issues/1`などが付いてもよい）を入れます。入れた値は次の起動でも使われます。
+- repoを入れると、そのrepoのopenなissueとPRのうち、自分にassignされたものと、自分個人にレビュー依頼が来ているPRが並びます。チーム宛てのレビュー依頼は並びません。レビュー依頼で入った行には「レビュー依頼」と付きます。
+- 空なら全repoが対象です。
+- repoを入れたときは、`~/ghq/github.com/<owner>`でzshを起動して`gh`を呼びます。`.zshenv`はその場所で`gh`のアカウントを切り替えるので、使うアカウントは`.zshenv`が決めます。アプリには、ownerとアカウントの対応表がありません。
+- `~/ghq/github.com/<owner>`がないときは、これまでと同じ`gh`の設定で呼びます。
+- 読めない入力は欄の下にメッセージが出て、一覧は変わりません。
+
+### TaskForge
+
+- vaultの場所は、設定（`Command + ,`）の「TaskForge の vault の場所」に入れます（例: `~/Documents/my-vault`）。前後の空白は取り、`~`は展開します。入れるまでは、TaskForgeの欄に「設定で TaskForge の vault の場所を指定してください」と出ます。
+- タスクの置き場所と項目名は、vaultの`TaskForge/Settings/dialect.json`から読みます。
+- `done`と`cancelled`以外のタスクが、ステータスごとに並びます。ステータスの順はTaskForgeの定義順（open、in-progress、on-hold、planned、deferred、blocked、someday、ready。ほかの値は最後）です。同じステータスの中は期限（`due`）の昇順、期限が同じなら予定日（`scheduled`）の昇順で、値がないものは後ろです。下の「更新」で読み直します。
+- vaultは読むだけです。ファイルの作成、IDの付与、状態の変更はしません。
+- カードの見出しは「☐ タスク名」で、長いときは見出しと要約になります。ヘッダーにプロジェクトとstatus、予定と期限が出ます。
+- QRには、frontmatterに`id`があるタスクはTaskForgeのリンク（`taskforge:///task/<id>`）、ないタスクはObsidianでそのファイルを開くリンク（`obsidian://open?vault=…&file=…`）が入ります。
+- リンクが長くてQRに入らないタスクは、QRなしで印字され、「リンクが長く QR に入らないため、QR を省いています」という注記が付きます。
+
+### QR を読む
+
+- 下のバーの「QR を読む」で、Macのカメラ（Continuity Cameraも可）を開き、カードのQRをかざします。複数のカメラがあれば、選べます。
+- 開くのは、次のリンクだけです。刷ったタスクのカードをかざすと、TaskForgeかObsidianでそのタスクが開きます。
+  - `taskforge:///task/<id>`（TaskForgeでタスクを開く）
+  - `obsidian://open?…`（Obsidianでノートを開く）
+  - `x-apple-reminderkit://…`（リマインダーを開く）
+  - `https://`と`http://`（ホストのあるもの）
+- `obsidian://new`や`taskforge:///add`など、上に挙げた形でないリンクと、リンクでない文字列（メモのカードは原文がそのまま入ります）は開かず、「読み取った文字列」として画面に出します。
+- 初回はカメラの許可が出ます。許可しなかったときと、カメラがないときは、理由が画面に出ます。
 
 ## iPhoneアプリ
 

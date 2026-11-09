@@ -141,19 +141,9 @@ public struct GitHubHandler: URLHandler {
         let owner = parts[parts.startIndex]
         let repo = parts[parts.startIndex + 1]
         let digits = parts[parts.startIndex + 3]
-        guard isOwner(owner), isRepo(repo), digits.allSatisfy({ $0.isASCII && $0.isNumber }),
+        guard RepoRef.isOwner(owner), RepoRef.isRepo(repo), digits.allSatisfy({ $0.isASCII && $0.isNumber }),
               let number = Int(digits)
         else { return nil }
         return Target(kind: kind, owner: owner, repo: repo, number: number)
-    }
-
-    private static func isOwner(_ name: String) -> Bool {
-        guard let first = name.first, first.isASCII, first.isLetter || first.isNumber else { return false }
-        return name.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-") }
-    }
-
-    private static func isRepo(_ name: String) -> Bool {
-        guard let first = name.first, first != "-", name != ".", name != ".." else { return false }
-        return name.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" || $0 == ".") }
     }
 }

@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "kind": "task",
+  "url": "taskforge:///task/weekly-report",
+  "header": {
+    "lines": ["TaskForge"],
+    "emphasis": "planned",
+    "sublines": ["予定 11/10(火) 09:00", "期限 11/12(木)"]
+  },
+  "title": "☐ 期限つき",
+  "sections": [
+    { "label": null, "text": "週次報告を出す。" }
+  ]
+}

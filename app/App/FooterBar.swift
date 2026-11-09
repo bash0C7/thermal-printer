@@ -22,6 +22,12 @@ struct FooterBar: View {
                 ProgressView().controlSize(.small)
                 Text("印刷中…").accessibilityIdentifier("printingLabel")
             }
+            Button {
+                model.isScanning = true
+            } label: {
+                Label("QR を読む", systemImage: "qrcode.viewfinder")
+            }
+            .accessibilityIdentifier("scanQRButton")
             Picker("濃度", selection: $model.density) {
                 ForEach(AppModel.densityRange, id: \.self) { level in
                     Text(Self.densityLabel(level)).tag(level)
@@ -38,6 +44,7 @@ struct FooterBar: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(.bar)
+        .sheet(isPresented: $model.isScanning, onDismiss: { model.handlePendingScan() }) { QRScanView() }
         .confirmationDialog(
             "長い印刷です", isPresented: $model.confirmingLongPrint, titleVisibility: .visible
         ) {

@@ -1,0 +1,100 @@
+{
+  "tasknotes": {
+    "archive_folder": "archive/tasknotes",
+    "body_template": "",
+    "custom_filename_template": "{title}",
+    "enabled": true,
+    "field_names": {
+      "cancelled": "cancelledDate",
+      "complete_instances": "complete_instances",
+      "completed": "completedDate",
+      "contexts": "contexts",
+      "created": "dateCreated",
+      "depends_on": "blockedBy",
+      "description": "__body__",
+      "due": "due",
+      "duration": "duration",
+      "modified": "dateModified",
+      "on_completion": "onCompletion",
+      "parent": "parent",
+      "priority": "priority",
+      "projects": "projects",
+      "recurrence": "recurrence",
+      "recurrence_anchor": "recurrence_anchor",
+      "reminders": "reminders",
+      "scheduled": "scheduled",
+      "skipped_instances": "skipped_instances",
+      "start": "start",
+      "status": "status",
+      "tags": "tags",
+      "title": "title",
+      "user_task_id": "id"
+    },
+    "filename_format": "title",
+    "folder": "00_TaskNotes",
+    "identification": {
+      "method": "property",
+      "property_name": "status",
+      "property_value": null,
+      "tag": null
+    },
+    "maintain_due_date_offset": true,
+    "parent_encoding": "projectsLink",
+    "parse_body_inline_tasks": false,
+    "priority_write_values": {
+      "high": [
+        "high"
+      ],
+      "highest": [
+        "highest"
+      ],
+      "low": [
+        "low"
+      ],
+      "lowest": [
+        "lowest"
+      ],
+      "medium": [
+        "medium"
+      ],
+      "none": [
+        "none"
+      ]
+    },
+    "recurrence_format": "rrule",
+    "status_write_values": {
+      "blocked": [
+        "blocked"
+      ],
+      "cancelled": [
+        "cancelled"
+      ],
+      "deferred": [
+        "deferred"
+      ],
+      "done": [
+        "done"
+      ],
+      "in_progress": [
+        "in-progress"
+      ],
+      "on_hold": [
+        "on-hold"
+      ],
+      "planned": [
+        "planned"
+      ],
+      "ready": [
+        "ready"
+      ],
+      "someday": [
+        "someday"
+      ],
+      "todo": [
+        "open"
+      ]
+    },
+    "store_title_in_filename": true,
+    "use_body_template": false
+  }
+}

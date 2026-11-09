@@ -29,6 +29,9 @@ struct Banner: Equatable {
 final class AppModel {
     static let thresholdDefaultsKey = "lengthThresholdCentimeters"
     static let reminderListDefaultsKey = "reminderList"
+    static let repoFilterDefaultsKey = "githubRepoFilter"
+    static let vaultPathDefaultsKey = "taskForgeVaultPath"
+    static let vaultPathNotSetMessage = "設定で TaskForge の vault の場所を指定してください"
     static let densityRange = 1...5
     static let defaultDensity = 4
 
@@ -40,15 +43,23 @@ final class AppModel {
     var density = AppModel.defaultDensity
     private(set) var thresholdCentimeters: Double
 
-    private(set) var issues: [TodayIssue] = []
+    private(set) var issues: [GitHubListing] = []
     private(set) var issuesMessage: String?
     private(set) var issuesLoading = false
+    private(set) var issuesRepo: RepoRef?
+    private(set) var repoFilter: RepoRef?
+    var repoText: String
+    private(set) var repoMessage: String?
     private(set) var allReminders: [TodayReminder] = []
     private(set) var reminderLists: [String] = []
     private(set) var reminderList: String?
     private(set) var remindersMessage: String?
     private(set) var remindersLoading = false
     private(set) var remindersNeedAccess = false
+    private(set) var vaultPath: String
+    private(set) var tasks: [TaskNote] = []
+    private(set) var tasksMessage: String?
+    private(set) var tasksLoading = false
     private(set) var pendingKeys: Set<String> = []
     private(set) var pendingCards = 0
 
@@ -61,12 +72,17 @@ final class AppModel {
     private(set) var isPrinting = false
     var banner: Banner?
     var confirmingLongPrint = false
+    var isScanning = false
+    var scannedText: String?
+    @ObservationIgnored private var pendingScan: String?
 
     @ObservationIgnored private let launch: PrinterLaunch
     @ObservationIgnored let previews: PreviewCoordinator
     @ObservationIgnored private let runner: any ProcessRunner = SystemProcessRunner()
     @ObservationIgnored private let composer = StripComposer()
     @ObservationIgnored private var composeGeneration = 0
+    @ObservationIgnored private var issuesGeneration = 0
+    @ObservationIgnored private var tasksGeneration = 0
     @ObservationIgnored private var started = false
     @ObservationIgnored private let summarizer = SummarizerSelector().summarizer
     @ObservationIgnored private lazy var registry = URLHandlerRegistry.standard(
@@ -89,6 +105,10 @@ final class AppModel {
         let saved = UserDefaults.standard.double(forKey: Self.thresholdDefaultsKey)
         self.thresholdCentimeters = saved > 0 ? saved : LengthPolicy.defaultThresholdCentimeters
         self.reminderList = UserDefaults.standard.string(forKey: Self.reminderListDefaultsKey)
+        let savedRepo = UserDefaults.standard.string(forKey: Self.repoFilterDefaultsKey).flatMap(RepoRef.parse)
+        self.repoFilter = savedRepo
+        self.repoText = savedRepo?.nameWithOwner ?? ""
+        self.vaultPath = UserDefaults.standard.string(forKey: Self.vaultPathDefaultsKey) ?? ""
     }
 
     var reminders: [TodayReminder] {
@@ -233,7 +253,21 @@ final class AppModel {
         pendingKeys.contains(key) || parts.contains { $0.todayKey == key }
     }
 
-    func setIssue(_ issue: TodayIssue, checked: Bool) {
+    func applyRepoText(_ text: String) async {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            storeRepoFilter(nil)
+        } else if let repo = RepoRef.parse(trimmed) {
+            storeRepoFilter(repo)
+        } else {
+            repoMessage = "owner/repo か GitHub の URL を入れてください"
+            return
+        }
+        repoMessage = nil
+        await loadIssues()
+    }
+
+    func setIssue(_ issue: GitHubListing, checked: Bool) {
         let key = issue.id
         guard checked else {
             uncheck(key)
@@ -241,8 +275,10 @@ final class AppModel {
         }
         guard let url = URL(string: issue.url), !isChecked(key) else { return }
         pendingKeys.insert(key)
+        let issueRegistry = URLHandlerRegistry.standard(
+            runner: GHAccountScope.runner(for: issuesRepo), summarizer: summarizer)
         Task {
-            let card = await registry.card(for: url)
+            let card = await issueRegistry.card(for: url)
             guard pendingKeys.remove(key) != nil else { return }
             add(.card(card), todayKey: key)
         }
@@ -265,10 +301,64 @@ final class AppModel {
         }
     }
 
+    func setTask(_ task: TaskNote, checked: Bool) {
+        let key = task.id
+        guard checked else {
+            uncheck(key)
+            return
+        }
+        guard !isChecked(key) else { return }
+        pendingKeys.insert(key)
+        pendingCards += 1
+        let vaultName = URL(filePath: vaultPath).lastPathComponent
+        Task {
+            let card = await TaskForgeCard.make(task, vaultName: vaultName, now: Date(), summarizer: summarizer)
+            pendingCards -= 1
+            guard pendingKeys.remove(key) != nil else { return }
+            add(.card(card), todayKey: key)
+        }
+    }
+
+    func setVaultPath(_ path: String) {
+        let normalized = TaskForgeSource.vaultPath(from: path)
+        vaultPath = normalized
+        UserDefaults.standard.set(normalized, forKey: Self.vaultPathDefaultsKey)
+        Task { await loadTasks() }
+    }
+
     func refreshToday(requestRemindersAccess: Bool = true) async {
         async let github: Void = loadIssues()
         async let reminders: Void = loadReminders(requestAccess: requestRemindersAccess)
-        _ = await (github, reminders)
+        async let tasks: Void = loadTasks()
+        _ = await (github, reminders, tasks)
+    }
+
+    func loadTasks() async {
+        tasksGeneration += 1
+        let generation = tasksGeneration
+        let path = vaultPath
+        guard !path.isEmpty else {
+            tasks = []
+            tasksMessage = Self.vaultPathNotSetMessage
+            tasksLoading = false
+            return
+        }
+        tasksLoading = true
+        let loaded: [TaskNote]
+        let message: String?
+        do {
+            loaded = try await Task.detached(priority: .userInitiated) {
+                try TaskForgeSource.openTasks(vault: URL(filePath: path))
+            }.value
+            message = loaded.isEmpty ? "未完了のタスクはありません" : nil
+        } catch {
+            loaded = []
+            message = error.localizedDescription
+        }
+        guard generation == tasksGeneration else { return }
+        tasks = loaded
+        tasksMessage = message
+        tasksLoading = false
     }
 
     func loadReminders(requestAccess: Bool) async {
@@ -300,6 +390,12 @@ final class AppModel {
         updateRemindersMessage()
     }
 
+    private func storeRepoFilter(_ repo: RepoRef?) {
+        repoFilter = repo
+        repoText = repo?.nameWithOwner ?? ""
+        UserDefaults.standard.set(repo?.nameWithOwner, forKey: Self.repoFilterDefaultsKey)
+    }
+
     private func storeReminderList(_ list: String?) {
         reminderList = list
         UserDefaults.standard.set(list, forKey: Self.reminderListDefaultsKey)
@@ -328,6 +424,29 @@ final class AppModel {
         isRefreshingStatus = true
         defer { isRefreshingStatus = false }
         status = await PrinterClient(launch: launch).refreshStatus(previous: status)
+    }
+
+    func finishScanning(with text: String) {
+        guard isScanning else { return }
+        pendingScan = text
+        isScanning = false
+    }
+
+    func handlePendingScan() {
+        guard let text = pendingScan else { return }
+        pendingScan = nil
+        handleScanned(text)
+    }
+
+    func handleScanned(_ text: String) {
+        switch ScannedPayload.classify(text) {
+        case .open(let url):
+            if !NSWorkspace.shared.open(url) {
+                banner = Banner(kind: .failure, text: "\(url.absoluteString) を開けませんでした")
+            }
+        case .show(let text):
+            scannedText = text
+        }
     }
 
     func requestPrint() {
@@ -375,15 +494,30 @@ final class AppModel {
     }
 
     private func loadIssues() async {
+        issuesGeneration += 1
+        let generation = issuesGeneration
+        let repo = repoFilter
         issuesLoading = true
-        defer { issuesLoading = false }
+        let loaded: [GitHubListing]
+        let message: String?
         do {
-            issues = try await TodayLoader.issues(runner: runner)
-            issuesMessage = issues.isEmpty ? "自分に assign された open の issue と PR はありません" : nil
+            loaded = try await GitHubListingLoader.load(repo: repo, runner: GHAccountScope.runner(for: repo))
+            message = loaded.isEmpty ? Self.emptyIssuesMessage(repo: repo) : nil
         } catch {
-            issues = []
-            issuesMessage = error.localizedDescription
+            loaded = []
+            message = error.localizedDescription
         }
+        guard generation == issuesGeneration else { return }
+        issues = loaded
+        issuesRepo = repo
+        issuesMessage = message
+        issuesLoading = false
+    }
+
+    static func emptyIssuesMessage(repo: RepoRef?) -> String {
+        let base = "自分に assign またはレビュー依頼された open の issue と PR はありません"
+        guard let repo else { return base }
+        return "\(repo.nameWithOwner) では、\(base)"
     }
 
     private func recompose() {

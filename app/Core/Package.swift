@@ -26,7 +26,7 @@ let package = Package(
             name: "ThermalPrinterCoreTests",
             dependencies: ["ThermalPrinterCore"],
             path: "Tests/ThermalPrinterCoreTests",
-            exclude: ["Image/Fixtures", "Sources/Fixtures"]
+            exclude: ["Image/Fixtures", "Sources/Fixtures", "Sources/TaskForge/Fixtures"]
         ),
         .testTarget(
             name: "ThermalPrinterIntegrationTests",

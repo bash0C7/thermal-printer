@@ -20,9 +20,11 @@ public struct SystemProcessRunner: ProcessRunner {
     public static let defaultOutputLimit = 4 * 1024 * 1024
 
     private let outputLimit: Int
+    private let currentDirectory: URL?
 
-    public init(outputLimit: Int = SystemProcessRunner.defaultOutputLimit) {
+    public init(outputLimit: Int = SystemProcessRunner.defaultOutputLimit, currentDirectory: URL? = nil) {
         self.outputLimit = outputLimit
+        self.currentDirectory = currentDirectory
     }
 
 #if os(macOS)
@@ -39,6 +41,7 @@ public struct SystemProcessRunner: ProcessRunner {
         let process = Process()
         process.executableURL = executable
         process.arguments = arguments
+        process.currentDirectoryURL = currentDirectory
         process.standardInput = FileHandle.nullDevice
         process.standardOutput = sink
         process.standardError = sink

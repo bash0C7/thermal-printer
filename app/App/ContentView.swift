@@ -4,6 +4,12 @@ import ThermalPrinterCore
 struct ContentView: View {
     @Environment(AppModel.self) private var model
 
+    private var scannedTextPresented: Binding<Bool> {
+        Binding(
+            get: { model.scannedText != nil },
+            set: { if !$0 { model.scannedText = nil } })
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             MessageBars()
@@ -34,6 +40,9 @@ struct ContentView: View {
                 .disabled(model.isRefreshingStatus || model.isPrinting)
                 .accessibilityIdentifier("refreshStatusButton")
             }
+        }
+        .sheet(isPresented: scannedTextPresented) {
+            ScannedTextSheet(text: model.scannedText ?? "") { model.scannedText = nil }
         }
         .background(ScreenReader { model.scale = $0 })
         .task { await model.start() }
