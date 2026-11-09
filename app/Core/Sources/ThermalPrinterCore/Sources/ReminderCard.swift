@@ -60,14 +60,15 @@ public enum ReminderCard {
     }
 
     private static func dueLine(_ item: ReminderItem, now: Date, calendar: Calendar) -> String? {
-        guard let due = item.due else { return nil }
-        let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: now), to: calendar.startOfDay(for: due)).day ?? 0
-        var text = "期限 " + dayText(due, days: days, now: now, calendar: calendar)
-        if item.dueHasTime {
-            let time = calendar.dateComponents([.hour, .minute], from: due)
-            text += String(format: " %02d:%02d", time.hour ?? 0, time.minute ?? 0)
-        }
-        return text
+        item.due.map { "期限 " + dateText($0, hasTime: item.dueHasTime, now: now, calendar: calendar) }
+    }
+
+    public static func dateText(_ date: Date, hasTime: Bool, now: Date, calendar: Calendar = .current) -> String {
+        let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: now), to: calendar.startOfDay(for: date)).day ?? 0
+        let day = dayText(date, days: days, now: now, calendar: calendar)
+        guard hasTime else { return day }
+        let time = calendar.dateComponents([.hour, .minute], from: date)
+        return day + String(format: " %02d:%02d", time.hour ?? 0, time.minute ?? 0)
     }
 
     private static func dayText(_ due: Date, days: Int, now: Date, calendar: Calendar) -> String {

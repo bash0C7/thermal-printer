@@ -14,6 +14,7 @@ extension Part {
             case .url: "URL"
             case .reminder: "リマインダー"
             case .memo: "メモ"
+            case .task: "タスク"
             }
         }
     }

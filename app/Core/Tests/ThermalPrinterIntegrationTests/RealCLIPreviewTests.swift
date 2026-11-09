@@ -4,7 +4,7 @@ import ThermalPrinterCore
 
 @Suite(.enabled(if: RealCLI.vmExists, "product VM not built: run rake vm:build or set PHOMEMO_PICORUBY"))
 struct RealCLIPreviewTests {
-    @Test(arguments: ["github", "slack", "url", "reminder"])
+    @Test(arguments: ["github", "slack", "url", "reminder", "task"])
     func theCLIPNGOfACardStripEqualsTheComposedBitmap(card: String) async throws {
         let directory = try RealCLI.makeWorkDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }

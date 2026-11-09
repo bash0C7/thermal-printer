@@ -272,3 +272,9 @@ private struct FakeStore: RemindersStore {
         #expect(try QRDecoder.decode(qrOnly) == link)
     }
 }
+
+@Test func theDateTextIsTheSameForARemindersDueAndATaskDate() {
+    #expect(ReminderCard.dateText(date(2026, 10, 24, 9, 0), hasTime: true, now: morning, calendar: tokyo) == "今日 09:00")
+    #expect(ReminderCard.dateText(date(2026, 10, 25), hasTime: false, now: morning, calendar: tokyo) == "明日")
+    #expect(ReminderCard.dateText(date(2026, 11, 12), hasTime: false, now: morning, calendar: tokyo) == "11/12(木)")
+}

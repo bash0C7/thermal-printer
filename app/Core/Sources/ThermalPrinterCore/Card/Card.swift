@@ -7,6 +7,7 @@ public struct Card: Codable, Equatable, Sendable {
         case url
         case reminder
         case memo
+        case task
     }
 
     public struct Header: Codable, Equatable, Sendable {

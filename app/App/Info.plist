@@ -37,6 +37,8 @@
 	<string>Phomemo T02に印刷するため、Bluetoothでプリンターを探して接続します。</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
 	<string>Phomemo T02に印刷するため、Bluetoothでプリンターを探して接続します。</string>
+	<key>NSCameraUsageDescription</key>
+	<string>印字した札の QR コードを読み取るためにカメラを使います</string>
 	<key>NSRemindersFullAccessUsageDescription</key>
 	<string>今日が期限のリマインダーをカードにして印刷するため、リマインダーを読み取ります。</string>
 </dict>
